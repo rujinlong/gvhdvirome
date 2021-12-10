@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+renv
+tmp
+data/hms
+data/hms/collab/virmerge-old
+data
+figs
+analyses/*.html
+.ipynb_checkpoints

@@ -1,0 +1,111 @@
+---
+title: "MOFA analyses"
+author: "Jinlong Ru"
+date: '2021-11-30'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+Create phyloseq object by running `create_phyloseq_objects.R`.
+
+```{r load datasets, message=FALSE, warning=FALSE}
+library(here)
+library(MOFA2)
+source(here("scripts/scripts.R"))
+fpath_metadata = here("data/processed/metadata.tsv")
+fpath_metabolites_BileAcid <- here("data/collab/2021-12-08_metabolites_email/MRI + UKR Bile acid dry feces_normalized.xlsx")
+fpath_metabolites_SCFA <- here("data/collab/2021-12-08_metabolites_email/MRI + UKR SCFA dry feces_normalized.xlsx")
+samples_donor <- c("R-AA-0", "R-AG-0", "R-AL-0", "R-BA-0", "R-BD-0")
+metadata <- read_tsv(fpath_metadata) %>% 
+  filter(!Project_ID %in% samples_donor) %>% 
+  filter(!str_detect(Project_ID, "M-AY")) %>% 
+  arrange(Project_ID) %>% 
+  mutate(sample=Project_ID)
+  # mutate(group=GvHD)
+  # mutate(group=survival1year)
+
+load(here("data/processed/pseq_16s.RData"))
+load(here("data/processed/pseq_ITS.RData"))
+load(here("data/processed/pseq_vir.RData"))
+```
+
+
+```{r Prepare input for MOFA2, message=FALSE, warning=FALSE}
+clr_vir = pseq_vir@otu_table@.Data %>% 
+  as.data.frame() %>% 
+  # rename_at(vars(metadata_vir$sample_id_virome), ~metadata_vir$SampleName) %>%
+  filter(rowSums(.)>100) %>% 
+  clr_trans(metadata)
+clr_16s = pseq_16s@otu_table@.Data %>% 
+  as.data.frame() %>% 
+  # rename_at(vars(metadata_16s$sample_id_16s), ~metadata_16s$SampleName) %>% 
+  filter(rowSums(.)>100) %>% 
+  clr_trans(metadata)
+clr_ITS = pseq_ITS@otu_table@.Data %>% 
+  as.data.frame() %>% 
+  # rename_at(vars(metadata_18s$sample_id_18s), ~metadata_18s$SampleName) %>% 
+  filter(rowSums(.)>100) %>% 
+  clr_trans(metadata)
+mtb_BileAcid <- read_excel(fpath_metabolites_BileAcid) %>% 
+  dplyr::select(-c("1","2")) %>% 
+  column_to_rownames('sample') %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  read_metabolites(metadata)
+mtb_SCFA <- read_excel(fpath_metabolites_SCFA) %>% 
+  dplyr::select(-c("1","2")) %>% 
+  column_to_rownames('sample') %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  read_metabolites(metadata)
+
+multidata <- list("virome"=clr_vir, 
+                  "16S"=clr_16s, 
+                  "ITS"= clr_ITS,
+                  "bile_acids"=mtb_BileAcid,
+                  "SCFA"=mtb_SCFA)
+```
+
+
+```{r MOFA}
+MOFAobject <- create_mofa(multidata)
+# Add metadata to MOFA object
+MOFAobject@samples_metadata$group <- metadata$survival1year
+samples_metadata(MOFAobject) <- metadata
+
+data_opts <- get_default_data_options(MOFAobject)
+model_opts <- get_default_model_options(MOFAobject)
+train_opts <- get_default_training_options(MOFAobject)
+train_opts$convergence_mode <- "fast"
+train_opts$seed <- 42
+model_opts$num_factors <- 15
+
+MOFAobject <- prepare_mofa(
+  MOFAobject, 
+  data_options = data_opts,
+  training_options = train_opts,
+  model_options = model_opts
+)
+
+# -------- Run MOFA2 --------
+MOFAobject <- run_mofa(MOFAobject, outfile = here("results/MOFA_model.hdf5"))
+plt_cum_var(MOFAobject, here("figs/plot_MOFA_cum_var.pdf"))
+plot_variance_explained(MOFAobject, plot_total = TRUE, max_r2=40)
+ggsave(here("figs/variance_explained.pdf"))
+```
+
+Downstream analyses can be done in [shinny](https://github.com/gtca/mofaplus-shiny).
+
+```{r MOFA2 downstream analyses}
+plot_data_overview(MOFAobject)
+ggsave(here("figs/data_overview.pdf"))
+plot_factor_cor(MOFAobject)
+
+plot_factors(MOFAobject, factors = c(1,2),
+                  dot_size = 4) +
+    stat_ellipse(geom = "polygon", alpha=0.25) +
+    geom_text(aes(label=sample),hjust=0, vjust=0, label.size=0.1)
+```
+

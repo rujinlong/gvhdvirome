@@ -1,0 +1,258 @@
+---
+title: "p0064_GvHD"
+output: html_notebook
+---
+
+
+```{r phyloseq virome}
+library(tidyverse)
+library(phyloseq)
+library(here)
+source(here("scripts/scripts.R"))
+
+fpath_metadata = here("data/processed/2021-12-08_metadata.tsv")
+fpath_abundance = here("data/hms/virmerge/files/abundance/abundance_contigs_count.tsv")
+fpath_vOTUs = here("data/hms/virmerge/files/clusters/vOTUs.tsv")
+fpath_tbl_merged = here("data/hms/virmerge/files/merge2.tsv")
+
+vmeta <- read_tsv(fpath_metadata) %>% 
+    filter(!is.na(vir_seq_sample_id)) %>% 
+    column_to_rownames("vir_seq_sample_id") %>% 
+    sample_data()
+
+votu <- merge_vOTU_abundance(fpath_abundance, fpath_vOTUs) %>% 
+    column_to_rownames("contig_id_raw") %>% 
+    as.matrix() %>% 
+    otu_table(taxa_are_rows = TRUE)
+
+vtax <- extract_viral_taxa(fpath_tbl_merged) %>%
+    column_to_rownames("contig_id_raw") %>% 
+    as.matrix() %>% 
+    tax_table()
+
+# Create phyloseq object
+pseq_vir <- phyloseq(votu2, vtax, vmeta)
+save(pseq_vir, file=here("data/processed/pseq_vir.RData"))
+```
+
+
+
+```{r Import Virome}
+
+metadata <- read_tsv(here("data/2021-02-19_metadata.tsv")) %>% 
+    mutate(SampleName=sampleID)
+vmeta <- metadata %>% 
+    filter(!is.na(sample_id_virome)) %>% 
+    mutate(samplename=sample_id_virome) %>% 
+    mutate(patient_id=patientID) %>% 
+    select(c(samplename, patient_id, disease_status)) %>% 
+    column_to_rownames("samplename") %>% 
+    phyloseq::sample_data()
+
+
+load(here("data/hms/tmp/pseq.RData"))
+pseq_vir@sam_data
+```
+
+
+```{r Phyloseq Analysis}
+library(MOFA2)
+source("scripts.R")
+
+load("amp16all/report/physeq.Rdata")
+physeq16s <- physeq
+
+load("amp18all/physeq.Rdata")
+physeq18s <- physeq
+
+# Richness
+plt_richness(physeq16s, "plot_richness_16s.pdf", dis_stat_16s)
+plt_richness(physeq18s, "plot_richness_18s.pdf", dis_stat_18s)
+plt_richness(pseq_vir, "plot_richness_vir.pdf", dis_stat_vir)
+
+# PCoA
+plt_ordination(physeq16s, "plot_pcoa_16s.pdf", "bray")
+plt_ordination(physeq18s, "plot_pcoa_18s.pdf", "bray")
+plt_ordination(pseq_vir, "plot_pcoa_vir.pdf", "bray")
+
+# Taxonomy
+plt_taxa_abundance(physeq16s, "Phylum", "plot_abundance_16s_phylum.pdf",
+                   dis_stat_18s)
+plt_taxa_abundance(physeq18s, "Phylum", "plot_abundance_18s_phylum.pdf", 
+                   dis_stat_18s)
+plt_taxa_abundance(pseq_vir, "Phylum", "plot_abundance_vir_phylum.pdf", 
+                   dis_stat_vir)
+plt_taxa_abundance(pseq_vir, "Order", "plot_abundance_vir_order.pdf", 
+                   dis_stat_vir)
+plt_taxa_abundance(pseq_vir, "Family", "plot_abundance_vir_Family.pdf", 
+                   dis_stat_vir)
+```
+
+```{r MOFA}
+add_NAsamples_log <- function(df, sampleTable) {
+  df <- as.data.frame(df)
+  df[sampleTable$sample[!sampleTable$sample %in% colnames(df)]] <- NA
+  df <- df %>%
+    dplyr::select(sort(names(.))) %>%
+    as.matrix()
+  df <- log10(df+1)
+  return(df)
+}
+
+clr_trans <- function(df, sampleTable) {
+  df <- df %>%
+    t() %>% 
+    compositions::clr() %>% 
+    t() %>% 
+    as.data.frame()
+  df[sampleTable$sample[!sampleTable$sample %in% colnames(df)]] <- NA
+  df <- df %>% 
+    dplyr::select(sort(names(.))) %>% 
+    as.matrix()
+  return(df)
+}
+
+metadata_vir <- metadata %>% 
+    filter(!is.na(sample_id_virome))
+metadata_16s <- metadata %>% 
+    filter(!is.na(sample_id_16s))
+metadata_18s <- metadata %>% 
+    filter(!is.na(sample_id_18s))
+
+data_vir = pseq_vir@otu_table@.Data %>% 
+    as.data.frame() %>% 
+    rename_at(vars(metadata_vir$sample_id_virome), ~metadata_vir$SampleName) %>% 
+    filter(rowSums(.)>100) %>%
+    as.matrix()
+data_16s = physeq16s@otu_table@.Data %>% 
+    as.data.frame() %>% 
+    rename_at(vars(metadata_16s$sample_id_16s), ~metadata_16s$SampleName) %>% 
+    filter(rowSums(.)>100) %>% 
+    as.matrix()
+data_18s = physeq18s@otu_table@.Data %>% 
+    as.data.frame() %>% 
+    rename_at(vars(metadata_18s$sample_id_18s), ~metadata_18s$SampleName) %>% 
+    filter(rowSums(.)>100) %>% 
+    as.matrix()
+    
+# Create MOFA object
+metadata_mofa <- metadata %>% 
+    mutate(sample=SampleName) %>% 
+    mutate(group=disease_status) %>%
+    mutate(group1=disease_status) %>%
+    arrange(sample)
+log10_vir <- clr_trans(data_vir, metadata_mofa)
+log10_16s <- clr_trans(data_16s, metadata_mofa)
+log10_18s <- clr_trans(data_18s, metadata_mofa)
+
+multidata <- list("virome"=log10_vir, "16S"=log10_16s, "18S"= log10_18s)
+MOFAobject <- create_mofa(multidata, groups = NULL)
+
+data_opts <- get_default_data_options(MOFAobject)
+model_opts <- get_default_model_options(MOFAobject)
+train_opts <- get_default_training_options(MOFAobject)
+train_opts$convergence_mode <- "fast"
+train_opts$seed <- 42
+model_opts$num_factors <- 10
+
+MOFAobject <- prepare_mofa(
+  MOFAobject, 
+  data_options = data_opts,
+  training_options = train_opts,
+  model_options = model_opts
+)
+MOFAobject <- run_mofa(MOFAobject, outfile = "MOFA_model.hdf5")
+samples_metadata(MOFAobject) <- metadata_mofa %>% 
+    select(c(sample, disease_status, patientID))
+
+save(MOFAobject, file = "MOFAobj_clr.RData")
+
+unique(metadata_mofa$disease_status)
+```
+
+```{r MOFA analysis}
+plot_data_overview(MOFAobject)
+plot_variance_explained(MOFAobject, plot_total = TRUE, max_r2=20)
+# p1 <- plot_variance_explained(MOFAobject, plot_total = T)[[2]]
+# p2 <- plot_variance_explained(MOFAobject, max_r2=20)
+plot_factor_cor(MOFAobject)
+plt_cum_var(MOFAobject, "plot_MOFA_cum_var.pdf")
+
+category.colors <- c(
+  "Pre-Tx" = "#8dd3c7", 
+  "d0" = "#1f78b4",
+  "d7" = "#bebada",
+  "d14" = "#fb8072",
+  "d28" = "#80b1d3",
+  "aGvHD" = "#fdb462",
+  "FollowUp" = "#b3de69"
+)
+
+
+plot_factors(MOFAobject, factors = c(1,4), color_by = "disease_status",
+                  dot_size = 4) +
+    stat_ellipse(aes(color=color_by), geom = "polygon", alpha=0.25) +
+    geom_text(aes(label=sample),hjust=0, vjust=0, label.size=0.1)
+
+plot_factors(MOFAobject, factors = c(1,4), color_by = "patientID", dot_size = 4) +
+    stat_ellipse(aes(color=color_by), geom = "polygon", alpha=0.25) +
+    geom_text(aes(label=sample),hjust=0, vjust=0, label.size=0.1)
+```
+
+```{r}
+MOFAobject@cache
+```
+
+
+
+```{r Factor}
+plot_factor(MOFAobject, 
+  factor = 1, 
+  color_by = "disease_status", 
+  dot_size = 4,
+  dodge = TRUE,
+  stroke = 0.4,
+  add_violin = T,
+  add_boxplot = T
+)
+  # scale_fill_manual(values=category.colors) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+  
+ 
+  
+plot_top_weights(MOFAobject, factor=1, view="virome", nfeatures=15, ) +
+    geom_text(aes(y=Phylum))
+
+
+
+plot_data_heatmap(MOFAobject, 
+  factor = 1, 
+  view = "virome", 
+  features = 20,
+  denoise = FALSE,
+  cluster_rows = F, cluster_cols = T,
+  show_colnames = T, show_rownames = F,
+  annotation_samples = "disease_status",  
+  annotation_colors = list("Category"=category.colors), 
+  annotation_legend = T,
+  scale = "row"
+)
+
+plot_weights_fn(MOFAobject, factor=1, view="virome", nfeatures=10)
+
+MOFAobject@features_metadata <- 
+    pseq_vir@tax_table@.Data %>% 
+    as.data.frame()
+
+MOFAobject
+
+
+vtax2 <- read_delim("~/pseq_taxa.csv", delim = ",") %>% 
+    column_to_rownames("contig_id")
+
+pseq_vir@tax_table@.Data
+```
+
