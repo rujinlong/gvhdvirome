@@ -78,7 +78,7 @@ update_dramv <- reactive(
 
 
 # Correlation
-load(here("app/GvHD/data/processed/MOFAobject.RData"))
+load(here("apps/GvHD/data/processed/MOFAobject.RData"))
 
 sel_bacteria_bad <- c("Enterococcus", "Streptococcus", "Staphylococcus", "Klebsiella", "Lactobacillus", "Escherichia", "Prevotella", "Stenotrophomonas")
 sel_bacteria_good <- c("Lachnospiraceae", "Blautia", "Sellimonas", "Anaerostipes", "Ruminococcaceae", "Flavinofractor", "Bacteroidetes", "Prevotella", "Barnesiella", "Actinobacteria", "Bifidobacterium", "Actinomyces", "Erysipelotrichaceae")
