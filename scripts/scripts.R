@@ -133,7 +133,8 @@ merge_vOTU_abundance <- function(abundance_contigs_count, vOTUs) {
 extract_viral_taxa <- function(tbl_merged) {
     vir_taxa <- read.csv(tbl_merged, sep = "\t") %>% 
         filter(CheckV_miuvig_quality=="High-quality") %>% 
-        dplyr::select(c("contig_id_raw", "Viral_Superkingdom", "Viral_Phylum", "Viral_Class", "Viral_Order", "Viral_Family", "Viral_Genus", "Viral_Species")) %>%
+        dplyr::select(c("contig_id_raw", "Viral_Superkingdom", "Viral_Phylum", "Viral_Class", "Viral_Order", "Viral_Family", "Viral_Genus", "Viral_Species", "bin_id")) %>%
+        rename_with(~str_replace(., "Viral_", "")) %>%
         # remove prophage contigs
         distinct(contig_id_raw, .keep_all=TRUE)
 
@@ -152,12 +153,14 @@ add_NAsamples_log <- function(df, sampleTable) {
   return(df)
 }
 
-clr_trans <- function(df, sampleTable) {
+clr_trans <- function(df, sampleTable, pseudocount=0) {
   samples_intersection <- intersect(colnames(df), sampleTable$sample)
   df <- df %>%
     dplyr::select(samples_intersection) %>% 
     as.matrix() %>% 
-    t() %>% 
+    t()
+  df <- df + pseudocount
+  df <- df %>% 
     compositions::clr() %>% 
     t() %>% 
     as.data.frame()

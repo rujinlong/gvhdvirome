@@ -1,0 +1,290 @@
+---
+title: "ViroProfiler results"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    css: www/styles.css
+    # vertical_layout: scroll
+    # theme: bootstrap
+runtime: shiny
+---
+
+```{r setup, global, include=FALSE}
+options(DT.options = list(scrollY="100vh"))
+library(tidyverse)
+library(shiny)
+library(flexdashboard)
+library(here)
+library(DT)
+library(data.table)
+dir_phamb <- here("data/hms/virmerge/phamb/results/")
+
+# Load 16s
+load(here("data/processed/pseq_16s.RData"))
+amp_16s <- pseq_16s@tax_table %>% 
+  as.data.frame() %>% 
+  rownames_to_column("OTU")
+
+# Virome
+checkv <- data.table::fread(here(dir_phamb, "quality_summary.tsv")) %>% 
+  arrange(desc(contig_length))
+vcs <- data.table::fread(here(dir_phamb, "genome_by_genome_overview.csv"), drop = 1)
+colnames(vcs) <- make.names(colnames(vcs))
+host <- data.table::fread(here(dir_phamb, "viral_host.tsv")) %>% 
+  arrange(desc(score))
+vamb <- fread(here(dir_phamb, "clusters.tsv"), header = F) %>% 
+  setnames(c("cluster_id", "contig_id"))
+vir_taxa <- fread(here(dir_phamb, "taxonomy.tsv")) 
+vir_dramv <- fread(here(dir_phamb, "annotations.tsv")) %>% 
+  filter(str_detect(amg_flags, "M|F")) %>% 
+  filter(auxiliary_score<=3) %>% 
+  mutate(contig_id=str_replace(scaffold, "-cat.*", ""))
+
+
+update_vcs <- reactive(
+  vcs %>% 
+  filter(Genome %in% input$genome | VC.Subcluster %in% input$VC | (length(input$genome)==0 & length(input$VC)==0))
+)
+
+update_checkv <- reactive(
+  checkv %>% 
+    filter(contig_id %in% update_vcs()$Genome)
+)
+
+update_host <- reactive(
+  host %>% 
+    filter(contig_id %in% update_vcs()$Genome)
+)
+
+update_16s <- reactive(
+ amp_16s %>% 
+    filter(OTU %in% input$OTU | length(input$OTU)==0)
+)
+
+update_vamb <- reactive(
+  vamb %>% 
+    filter(cluster_id %in% update_vcs()$Genome)
+)
+
+update_taxonomy <- reactive(
+  vir_taxa %>% 
+    filter(contig_id %in% update_vcs()$Genome)
+)
+
+update_dramv <- reactive(
+  vir_dramv %>% 
+    filter(contig_id %in% update_vamb()$contig_id)
+)
+
+
+# Correlation
+load(here("data/processed/MOFAobject.RData"))
+
+sel_bacteria_bad <- c("Enterococcus", "Streptococcus", "Staphylococcus", "Klebsiella", "Lactobacillus", "Escherichia", "Prevotella", "Stenotrophomonas")
+sel_bacteria_good <- c("Lachnospiraceae", "Blautia", "Sellimonas", "Anaerostipes", "Ruminococcaceae", "Flavinofractor", "Bacteroidetes", "Prevotella", "Barnesiella", "Actinobacteria", "Bifidobacterium", "Actinomyces", "Erysipelotrichaceae")
+sel_bacteria <- c(sel_bacteria_bad, sel_bacteria_good)
+
+pseq_16s_genus <- phyloseq::tax_glom(pseq_16s, taxrank = "Genus", NArm = FALSE)
+pseq_16s_sel <- pseq_16s_genus@tax_table@.Data %>% 
+  data.frame() %>% 
+  filter(Genus %in% sel_bacteria) %>% 
+  dplyr::select(Genus)
+
+# 
+# otu_good <- pseq_16s_sel@tax_table@.Data %>%
+#   as.data.frame() %>%
+#   filter(Genus %in% sel_bacteria_good) %>%
+#   dplyr::select(Genus)
+# 
+# otu_bad <- pseq_16s_sel@tax_table@.Data %>%
+#   as.data.frame() %>%
+#   filter(Genus %in% sel_bacteria_bad) %>%
+#   dplyr::select(Genus)
+
+# --------- correlation -----------
+bac <- MOFAobject@data$`16S`$group1
+vir <- MOFAobject@data$virome$group1
+bac_sel <- bac %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  filter(rowname %in% rownames(pseq_16s_sel)) %>%
+  column_to_rownames("rowname")
+
+b2v <- psych::corr.test(t(vir), t(bac_sel))
+b2v.cor <- b2v$r
+b2v.cor[is.na(b2v.cor)]  <- 0
+
+update_cor <- reactive({
+  b2v.cor.sel <- b2v.cor[rowSums(abs(b2v.cor)>input$cor)>0,]
+  newnames <- set_names(pseq_16s_sel$Genus, rownames(pseq_16s_sel))
+  colnames(b2v.cor.sel) <- newnames[colnames(b2v.cor.sel)]
+  return(b2v.cor.sel)
+})
+```
+
+
+Virome
+==================================
+
+Column {.sidebar}
+----------------------------------------
+
+```{r}
+selectInput(inputId = "VC", label = "Genome clusters", choices = unique(vcs$VC.Subcluster), multiple = TRUE)
+selectInput(inputId = "genome", label = "Genome bins", choices = unique(vcs$Genome), multiple = TRUE)
+```
+
+
+Row {.tabset .tabset-fade}
+---------------------------------------------------
+
+### vContact2 genome clusters
+
+```{r}
+renderDataTable(
+  update_vcs(), 
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+### CheckV bin quality
+
+```{r}
+renderDataTable(
+  update_checkv(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+
+### Viral host prediction
+
+
+```{r}
+renderDataTable(
+  update_host(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+### Host score distribution
+
+```{r}
+renderPlot(
+  ggplot2::ggplot(update_host(), aes(x=score)) +
+     geom_histogram(binwidth = 0.05, fill="white", color="black") +
+     scale_x_continuous(breaks=seq(0, 1, 0.05)) +
+     xlim(c(0, 1))
+  # hist(update_host()$score, main="Host score distribution", xlab="Host score")
+)
+```
+
+
+### VAMB clusters
+
+```{r}
+renderDataTable(
+  update_vamb(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+### Taxonomy
+
+```{r}
+renderDataTable(
+  update_taxonomy(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+
+### Protein annotation
+
+```{r}
+renderDataTable(
+  update_dramv(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=35
+  )
+)
+```
+
+
+
+
+16S
+================================
+
+Column {.sidebar}
+----------------------------------------
+
+```{r}
+selectInput(inputId = "OTU", label = "OTU", choices = unique(amp_16s$OTU), multiple = TRUE)
+```
+
+
+Row
+----------------------------------------------------------------------
+
+### 16s taxonomy
+
+```{r}
+renderDataTable(
+  update_16s(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=30
+  )
+)
+```
+
+
+Correlation plot
+=====================================
+
+Column {.sidebar}
+----------------------------------------
+
+```{r}
+sliderInput("cor", "Absolute correlation coefficient:",
+            min = 0, max = 1, value = 0.6)
+```
+
+
+Row
+----------------------------------------------------------------------
+
+### Correlation
+
+```{r}
+renderPlot(
+   ComplexHeatmap::pheatmap(
+     update_cor(),
+     fontsize = 14)
+)
+```
+

@@ -8,9 +8,10 @@ source(here("scripts/scripts.R"))
 fpath_metadata = here("data/processed/metadata.tsv")
 fpath_16s <- here("data/collab/2021-10-20_MOFA-additional-notes_email/TaxaSubset_Genus_V1V3.xlsx")
 fpath_ITS <- here("data/collab/2021-10-20_MOFA-additional-notes_email/TaxaSubset_Genus_ITS.xlsx")
-fpath_vabundance = here("data/hms/virmerge/files/abundance/abundance_contigs_count.tsv")
+# fpath_vabundance = here("data/hms/virmerge/files/abundance/abundance_contigs_count.tsv")
+fpath_vabundance = here("vabundance.tsv")
 fpath_vOTUs = here("data/hms/virmerge/files/clusters/vOTUs.tsv")
-fpath_vir_merged = here("data/hms/virmerge/files/merge2.tsv")
+fpath_vir_merged = here("data/hms/virmerge/files/merge3.tsv")
 
 
 # ---------- metadata -------------
@@ -51,10 +52,13 @@ pseq_ITS <- phyloseq(ampITS_counts, ampITS_taxa, pseq_meta)
 save(pseq_ITS, file=here("data/processed/pseq_ITS.RData"))
 
 # ---------- Virome ------------
+# votu <- merge_vOTU_abundance(fpath_vabundance, fpath_vOTUs) %>%
+#     column_to_rownames("contig_id_raw") %>%
+#     dplyr::select(colnames(.)[colnames(.) %in% metadata$vir_seq_sample_id])
 
-votu <- merge_vOTU_abundance(fpath_vabundance, fpath_vOTUs) %>% 
-    column_to_rownames("contig_id_raw") %>% 
-    dplyr::select(colnames(.)[colnames(.) %in% metadata$vir_seq_sample_id])
+votu <- fread(fpath_vabundance) %>% 
+  column_to_rownames("Contig") %>% 
+  dplyr::select(colnames(.)[colnames(.) %in% metadata$vir_seq_sample_id])
 
 vmeta <- metadata %>% 
     filter(metadata$vir_seq_sample_id %in% colnames(votu)) %>% 
@@ -72,6 +76,7 @@ vtax <- extract_viral_taxa(fpath_vir_merged) %>%
     tax_table()
 
 # Create phyloseq object
-pseq_vir <- phyloseq(votu, vtax, pseq_meta)
+# pseq_vir <- phyloseq(votu, vtax, pseq_meta)
+pseq_vir <- phyloseq(votu, pseq_meta)
 save(pseq_vir, file=here("data/processed/pseq_vir.RData"))
 

@@ -2,8 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-*.Rproj
-renv
+renv/*
+!renv/activate.R
 tmp
 data/hms
 data/hms/collab/virmerge-old
@@ -11,3 +11,4 @@ data
 figs
 analyses/*.html
 .ipynb_checkpoints
+apps/GvHD/rsconnect/*

@@ -1,0 +1,66 @@
+---
+title: "VAMB bins and vContact2 clusters"
+output: html_notebook
+---
+
+```{r}
+extract_vc_by_quality <- function(df, quality) {
+  vcs <- df %>% 
+    filter(checkv_quality==quality) %>% 
+    dplyr::select(VC.Subcluster) %>% 
+    distinct() %>% 
+    pull(VC.Subcluster)
+  return(vcs)
+}
+```
+
+
+```{r}
+library(tidyverse)
+library(here)
+library(data.table)
+
+dir_phamb <- "data/hms/virmerge/phamb/results/"
+
+
+checkv <- fread(here(dir_phamb, "quality_summary.tsv"))
+
+vc <- fread(here(dir_phamb, "genome_by_genome_overview.csv"), drop = 1)
+colnames(vc) <- make.names(colnames(vc))
+vc_clusters <- vc %>% 
+  mutate(contig_id=Genome) %>% 
+  dplyr::select(c("contig_id", "VC.Subcluster")) %>% 
+  filter(str_detect(contig_id, "__"))
+
+
+abundance <- fread(here(dir_phamb, "abundance_contigs_count.tsv")) %>% 
+  rename(contig_id=Contig)
+
+vOTU <- fread(here(dir_phamb, "vOTUs.tsv"))  %>% 
+  mutate(contig_id=repid) %>% 
+  select(contig_id) %>% 
+  distinct(contig_id) %>% 
+  left_join(checkv, by="contig_id") %>% 
+  left_join(vc_clusters, by = "contig_id") %>% 
+  mutate(VC.Subcluster=ifelse(VC.Subcluster=="", contig_id, VC.Subcluster))
+
+QC <- extract_vc_by_quality(vOTU, "Complete")
+QH <- extract_vc_by_quality(vOTU, "High-quality")
+QI <- extract_vc_by_quality(vOTU, "Medium-quality")
+QL <- extract_vc_by_quality(vOTU, "Low-quality")
+QU <- extract_vc_by_quality(vOTU, "Not-determined")
+
+df <- vOTU %>% 
+  dplyr::select(c(contig_id, VC.Subcluster)) %>% 
+  left_join(abundance, by = "contig_id") %>% 
+  dplyr::select(-contig_id)
+df <- df[, lapply(.SD, sum), by="VC.Subcluster"]
+df %>% 
+  rename(Contig=VC.Subcluster) %>% 
+  fwrite("vabundance.tsv", sep = "\t")
+```
+
+```{r}
+
+```
+
