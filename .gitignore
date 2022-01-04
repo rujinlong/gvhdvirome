@@ -8,6 +8,7 @@ tmp
 data/hms
 data/hms/collab/virmerge-old
 data
+!apps/GvHD/data
 figs
 analyses/*.html
 .ipynb_checkpoints
