@@ -25,6 +25,12 @@ amp_16s <- pseq_16s@tax_table %>%
   as.data.frame() %>% 
   rownames_to_column("OTU")
 
+# Load ITS
+load(here("apps/GvHD/data/processed/pseq_ITS.RData"))
+amp_ITS <- pseq_ITS@tax_table %>% 
+  as.data.frame() %>% 
+  rownames_to_column("OTU")
+
 # Virome
 checkv <- data.table::fread(here(dir_phamb, "quality_summary.tsv")) %>% 
   arrange(desc(contig_length))
@@ -60,6 +66,12 @@ update_16s <- reactive(
  amp_16s %>% 
     filter(OTU %in% input$OTU | length(input$OTU)==0)
 )
+
+update_ITS <- reactive(
+ amp_ITS %>% 
+    filter(OTU %in% input$OTU_ITS | length(input$OTU_ITS)==0)
+)
+
 
 update_vamb <- reactive(
   vamb %>% 
@@ -254,6 +266,35 @@ Row
 ```{r}
 renderDataTable(
   update_16s(),
+  filter="top",
+  fillContainer=TRUE,
+  options = list(
+    pageLength=30
+  )
+)
+```
+
+
+
+ITS
+================================
+
+Column {.sidebar}
+----------------------------------------
+
+```{r}
+selectInput(inputId = "OTU_ITS", label = "ITS OTU", choices = unique(amp_ITS$OTU), multiple = TRUE)
+```
+
+
+Row
+----------------------------------------------------------------------
+
+### ITS taxonomy
+
+```{r}
+renderDataTable(
+  update_ITS(),
   filter="top",
   fillContainer=TRUE,
   options = list(
