@@ -7,9 +7,8 @@ renv/*
 tmp
 report
 data/hms
-data/hms/collab/virmerge-old
-data
-!data/processed
+data/raw
+data/collab
 !apps/GvHD/data
 figs
 analyses/*.html
