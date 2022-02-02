@@ -5,6 +5,7 @@
 renv/*
 !renv/activate.R
 tmp
+report
 data/hms
 data/hms/collab/virmerge-old
 data
