@@ -67,11 +67,13 @@ print(p)
 ```{r Ordination}
 pseq_ord <- ordinate(physeq, "PCoA", "bray")
 # pseq_ord <- ordinate(physeq, "MDS", "unifrac")
-plot_ordination(physeq, pseq_ord, type="samples", color="Timepoint") +
+p <- plot_ordination(physeq, pseq_ord, type="samples", color="Timepoint") +
   geom_point(size=1, alpha=0.3) + 
   stat_ellipse(aes(fill = Timepoint), geom="polygon",level=0.95,alpha=0.1) +
-  theme_bw() +
-  ggsave(here("figs/16s_ordination.pdf"))
+  theme_bw()
+
+ggsave(here("figs/16s_ordination.pdf"), p)
+print(p)
 ```
 
 
