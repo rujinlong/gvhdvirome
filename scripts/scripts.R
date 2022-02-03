@@ -183,3 +183,13 @@ read_metabolites <- function(df_metabolites, metadata) {
     as.matrix()
   return(df)
 }
+
+
+extract_vc_by_quality <- function(df, quality) {
+  vcs <- df %>% 
+    filter(checkv_quality==quality) %>% 
+    dplyr::select(VC.Subcluster) %>% 
+    distinct() %>% 
+    pull(VC.Subcluster)
+  return(vcs)
+}

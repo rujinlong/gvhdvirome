@@ -55,6 +55,31 @@ load(here("data/processed/pseq_16s.RData"))
 load(here("data/processed/pseq_ITS.RData"))
 load(here("data/processed/pseq_vir.RData"))
 nrow(pseq_vir@otu_table@.Data)
+
+
+# phamb
+dir_phamb <- here("data/hms/virmerge/phamb/results/")
+checkv <- fread(here(dir_phamb, "quality_summary.tsv"))
+vc <- fread(here(dir_phamb, "genome_by_genome_overview.csv"), drop = 1)
+colnames(vc) <- make.names(colnames(vc))
+vc_clusters <- vc %>% 
+  mutate(contig_id=Genome) %>% 
+  dplyr::select(c("contig_id", "VC.Subcluster")) %>% 
+  filter(str_detect(contig_id, "__"))
+
+vOTU <- fread(here(dir_phamb, "vOTUs.tsv"))  %>% 
+  mutate(contig_id=repid) %>% 
+  select(contig_id) %>% 
+  distinct(contig_id) %>% 
+  left_join(checkv, by="contig_id") %>% 
+  left_join(vc_clusters, by = "contig_id") %>% 
+  mutate(VC.Subcluster=ifelse(VC.Subcluster=="", contig_id, VC.Subcluster))
+
+QC <- extract_vc_by_quality(vOTU, "Complete")
+QH <- extract_vc_by_quality(vOTU, "High-quality")
+QI <- extract_vc_by_quality(vOTU, "Medium-quality")
+QL <- extract_vc_by_quality(vOTU, "Low-quality")
+QU <- extract_vc_by_quality(vOTU, "Not-determined")
 ```
 
 
