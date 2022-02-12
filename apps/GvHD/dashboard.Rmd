@@ -9,6 +9,7 @@ output:
 runtime: shiny
 ---
 
+
 ```{r setup, global, include=FALSE}
 options(DT.options = list(scrollY="100vh"))
 library(tidyverse)
@@ -17,6 +18,13 @@ library(flexdashboard)
 library(here)
 library(DT)
 library(data.table)
+library(ggplot2)
+library(plotly)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(shinyHeatmaply)
+library(heatmaply)
+library(plotly)
 dir_phamb <- here("apps/GvHD/data/hms/virmerge/phamb/results/")
 
 # Load 16s
@@ -95,43 +103,76 @@ load(here("apps/GvHD/data/processed/MOFAobject.RData"))
 sel_bacteria_bad <- c("Enterococcus", "Streptococcus", "Staphylococcus", "Klebsiella", "Lactobacillus", "Escherichia", "Prevotella", "Stenotrophomonas")
 sel_bacteria_good <- c("Lachnospiraceae", "Blautia", "Sellimonas", "Anaerostipes", "Ruminococcaceae", "Flavinofractor", "Bacteroidetes", "Prevotella", "Barnesiella", "Actinobacteria", "Bifidobacterium", "Actinomyces", "Erysipelotrichaceae")
 sel_bacteria <- c(sel_bacteria_bad, sel_bacteria_good)
-
 pseq_16s_genus <- phyloseq::tax_glom(pseq_16s, taxrank = "Genus", NArm = FALSE)
-pseq_16s_sel <- pseq_16s_genus@tax_table@.Data %>% 
-  data.frame() %>% 
-  filter(Genus %in% sel_bacteria) %>% 
-  dplyr::select(Genus)
-
-# 
-# otu_good <- pseq_16s_sel@tax_table@.Data %>%
-#   as.data.frame() %>%
-#   filter(Genus %in% sel_bacteria_good) %>%
-#   dplyr::select(Genus)
-# 
-# otu_bad <- pseq_16s_sel@tax_table@.Data %>%
-#   as.data.frame() %>%
-#   filter(Genus %in% sel_bacteria_bad) %>%
-#   dplyr::select(Genus)
-
 # --------- correlation -----------
 bac <- MOFAobject@data$`16S`$group1
 vir <- MOFAobject@data$virome$group1
-bac_sel <- bac %>%
-  as.data.frame() %>%
-  rownames_to_column() %>%
-  filter(rowname %in% rownames(pseq_16s_sel)) %>%
-  column_to_rownames("rowname")
 
-b2v <- psych::corr.test(t(vir), t(bac_sel))
-b2v.cor <- b2v$r
-b2v.cor[is.na(b2v.cor)]  <- 0
+update_b2v_cor <- reactive({
+  pseq_16s_sel <- pseq_16s_genus@tax_table@.Data %>% 
+    data.frame() %>% 
+    filter(Genus %in% input$selected_bacteria) %>% 
+    dplyr::select(Genus)
 
-update_cor <- reactive({
+  
+  bac_sel <- bac %>%
+    as.data.frame() %>%
+    rownames_to_column() %>%
+    filter(rowname %in% rownames(pseq_16s_sel)) %>%
+    column_to_rownames("rowname")
+  
+  vir_sel <- vir %>%
+    as.data.frame() %>% 
+    filter(rownames(.) %in% input$selected_virus)
+  
+  b2v <- psych::corr.test(t(vir_sel), t(bac_sel))
+  b2v_cor <- b2v$r
+  b2v_cor[is.na(b2v_cor)]  <- 0
+  return(list(pseq_16s_sel=pseq_16s_sel, 
+              b2v_cor=b2v_cor, 
+              bac_sel=bac_sel,
+              vir_sel=vir_sel))
+})
+
+update_cor_coef <- reactive({
+  b2v.cor <- update_b2v_cor()$b2v_cor
+  pseq_16s_sel <- update_b2v_cor()$pseq_16s_sel
   b2v.cor.sel <- b2v.cor[rowSums(abs(b2v.cor)>input$cor)>0,]
   newnames <- set_names(pseq_16s_sel$Genus, rownames(pseq_16s_sel))
   colnames(b2v.cor.sel) <- newnames[colnames(b2v.cor.sel)]
   return(b2v.cor.sel)
 })
+
+update_cor_all <- reactive({
+  # vir_sel_all <- vir %>%
+  #   as.data.frame()
+  #   # filter(rownames(.) %in% input$selected_virus)
+  bac_sel <- update_b2v_cor()$bac_sel
+  b2v_all <- psych::corr.test(t(vir), t(bac_sel))
+  b2v_cor_all <- b2v_all$r
+  b2v_cor_all[is.na(b2v_cor_all)]  <- 0
+  pseq_16s_all <- pseq_16s_genus@tax_table@.Data %>% 
+    data.frame() %>% 
+    dplyr::select(Genus)
+  b2v_cor_all_sel <- b2v_cor_all[rowSums(abs(b2v_cor_all)>input$cor)>0,]
+  newnames <- set_names(pseq_16s_all$Genus, rownames(pseq_16s_all))
+  colnames(b2v_cor_all_sel) <- newnames[colnames(b2v_cor_all_sel)]
+  return(b2v_cor_all_sel)
+})
+
+# update_cor_sel_bacVir <- reactive({
+#   cor_sel <- b2v.cor[rowSums(abs(b2v.cor)>input$cor)>0,]
+#   newnames <- set_names(pseq_16s_sel$Genus, rownames(pseq_16s_sel))
+#   colnames(cor_sel) <- newnames[colnames(cor_sel)]
+#   return(cor_sel)
+# })
+
+# update_cor_sel_metVir <- reactive({
+#   cor_sel <- b2v.cor[rowSums(abs(b2v.cor)>input$cor)>0,]
+#   newnames <- set_names(pseq_16s_sel$Genus, rownames(pseq_16s_sel))
+#   colnames(cor_sel) <- newnames[colnames(cor_sel)]
+#   return(cor_sel)
+# })
 ```
 
 
@@ -313,19 +354,53 @@ Column {.sidebar}
 ```{r}
 sliderInput("cor", "Absolute correlation coefficient:",
             min = 0, max = 1, value = 0.6)
+selectInput("selected_bacteria", "Selected bacteria",
+            multiple = TRUE,
+            choices = data.frame(pseq_16s_genus@tax_table@.Data)$Genus)
+selectInput("selected_virus", "Selected virus",
+            multiple = TRUE,
+            choices = rownames(vir))
 ```
 
 
-Row
+Row {.tabset .tabset-fade}
 ----------------------------------------------------------------------
 
 ### Correlation
 
 ```{r}
-renderPlot(
-   ComplexHeatmap::pheatmap(
-     update_cor(),
-     fontsize = 14)
-)
+# renderPlot(
+#    ComplexHeatmap::pheatmap(
+#      update_cor(),
+#      fontsize = 14)
+# )
+
+
+renderPlotly({
+   heatmaply(update_cor_coef(),
+             limits = c(-1, 1),
+             midpoint = 0,
+             colors=colorRampPalette(rev(brewer.pal(n = 7, name =
+  "RdYlBu")))(100))
+})
+
+# renderPlot(
+#    ComplexHeatmap::pheatmap(
+#      update_cor_sel_metVir(),
+#      fontsize = 14)
+# )
 ```
+
+### All correlation
+
+```{r}
+renderPlotly({
+   heatmaply(update_cor_all(),
+             limits = c(-1, 1),
+             midpoint = 0,
+             colors=colorRampPalette(rev(brewer.pal(n = 7, name =
+  "RdYlBu")))(100))
+})
+```
+
 
