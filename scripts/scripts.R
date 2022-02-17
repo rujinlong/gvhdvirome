@@ -4,6 +4,7 @@ library(gridExtra)
 library(reshape2)
 library(data.table)
 library(ggpubr)
+library(speedyseq)
 
 dis_stat_vir <- c("Pre-Tx", "d0", "d7", "d14", "d28", "aGvHD")
 dis_stat_16s <- c("Pre-Tx", "d0", "d7", "d14", "d28", "aGvHD", "Follow Up")
@@ -192,4 +193,21 @@ extract_vc_by_quality <- function(df, quality) {
     distinct() %>% 
     pull(VC.Subcluster)
   return(vcs)
+}
+
+
+
+# ------ Amplicon --------
+update_physeq_metadata <- function(pseq, fp_metadata, sample_order) {
+  mdata <- read_excel(fp_metadata)
+  pseq@sam_data <- pseq@sam_data %>% 
+    data.frame() %>% 
+    rownames_to_column("rowname") %>% 
+    left_join(mdata, by = "samplename") %>% 
+    column_to_rownames("rowname") %>% 
+    sample_data()
+  
+  pseq <- pseq %>% 
+    phyloseq::subset_samples(Timepoint %in% sample_order)
+  return(pseq)
 }

@@ -9,26 +9,25 @@ library(tidyverse)
 # library(phyloseq)
 library(speedyseq)
 library(readxl)
-
-load(here("data/processed/physeq_16s.Rdata"))
-mdata <- read_excel(here("data/processed/metadata_amp.xlsx"))
-
-physeq@sam_data <- physeq@sam_data %>% 
-  data.frame() %>% 
-  rownames_to_column("rowname") %>% 
-  left_join(mdata, by = "samplename") %>% 
-  column_to_rownames("rowname") %>% 
-  sample_data()
-
-# Filter samples
+source(here("scripts/scripts.R"))
 sample_order <- c("COND", "0", "7", "14", "21", "28", "POST")
-physeq <- subset_samples(physeq, Timepoint %in% sample_order)
 
-# save(physeq, file = here("data/physeq_16s_filter.RData"))
+# 16s
+load(here("data/processed/physeq_16s.Rdata"))
+fp_metadata_16s <- here("data/processed/metadata_amp16s.xlsx")
+physeq_16s <- update_physeq_metadata(physeq, fp_metadata_16s, sample_order)
+save(physeq_16s, file = here("data/processed/physeq_16s_filter.RData"))
+
+# 18s
+load(here("data/processed/physeq_18s.Rdata"))
+fp_metadata_18s <- here("data/processed/metadata_amp18s.xlsx")
+physeq_18s <- update_physeq_metadata(physeq, fp_metadata_18s, sample_order)
+save(physeq_18s, file = here("data/processed/physeq_18s_filter.RData"))
 ```
 
-```{r Alpha-diversity}
-p <- physeq %>% 
+# ----------- 16S ---------------
+```{r 16s Alpha-diversity}
+p <- physeq_16s %>% 
   plot_richness(x="Timepoint", measures = c("Chao1", "Shannon")) +
     stat_boxplot(geom = "errorbar",width = 0.35) +
     geom_boxplot() +
@@ -40,17 +39,17 @@ print(p)
 ```
 
 
-```{r Taxonomy}
-sdata <- sample_data(physeq)
-ps0 <- merge_samples2(physeq, group = sdata$Timepoint)
+```{r 16s Taxonomy}
+sdata_16s <- sample_data(physeq_16s)
+ps0_16s <- merge_samples2(physeq_16s, group = sdata_16s$Timepoint)
 
-ps_phylum <- ps0 %>%
-  tax_glom(taxrank = "Phylum") %>%                 # agglomerate at Phylum level, (Order, Family, ...)
+ps_phylum_16s <- ps0_16s %>%
+  tax_glom(taxrank = "Phylum") %>%    # agglomerate at Phylum level, (Order, Family, ...)
   transform_sample_counts(function(x) {x/sum(x)} ) %>% 
   psmelt() %>% 
   arrange(Phylum)
 
-p <- ps_phylum %>% 
+p <- ps_phylum_16s %>% 
   filter(Abundance>0.001) %>%
   ggplot(aes(x = Timepoint, y = Abundance, fill = Phylum)) +    # Color by Phylum
   geom_bar(stat = "identity", position="stack") +
@@ -64,15 +63,65 @@ print(p)
 ```
 
 
-```{r Ordination}
-pseq_ord <- ordinate(physeq, "PCoA", "bray")
+```{r 16s Ordination}
+pseq_ord_16s <- ordinate(physeq_16s, "PCoA", "bray")
 # pseq_ord <- ordinate(physeq, "MDS", "unifrac")
-p <- plot_ordination(physeq, pseq_ord, type="samples", color="Timepoint") +
+p <- plot_ordination(physeq_16s, pseq_ord_16s, type="samples", color="Timepoint") +
   geom_point(size=1, alpha=0.3) + 
   stat_ellipse(aes(fill = Timepoint), geom="polygon",level=0.95,alpha=0.1) +
   theme_bw()
 
 ggsave(here("figs/16s_ordination.pdf"), p)
+print(p)
+```
+
+# ---------- 18s -------------
+```{r 18s Alpha-diversity}
+p <- physeq_18s %>% 
+  plot_richness(x="Timepoint", measures = c("Chao1", "Shannon")) +
+    stat_boxplot(geom = "errorbar",width = 0.35) +
+    geom_boxplot() +
+    theme_bw()
+
+p$data$Timepoint <- factor(p$data$Timepoint, levels = sample_order)
+ggsave(here("figs/18s_alpha-diversity.pdf"), p)
+print(p)
+```
+
+
+```{r Taxonomy}
+sdata_18s <- sample_data(physeq_18s)
+ps0_18s <- merge_samples2(physeq_18s, group = sdata_18s$Timepoint)
+
+ps_phylum_18s <- ps0_18s %>%
+  tax_glom(taxrank = "Phylum") %>%                 # agglomerate at Phylum level, (Order, Family, ...)
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% 
+  psmelt() %>% 
+  arrange(Phylum)
+
+p <- ps_phylum_18s %>% 
+  filter(Abundance>0.001) %>%
+  ggplot(aes(x = Timepoint, y = Abundance, fill = Phylum)) +    # Color by Phylum
+  geom_bar(stat = "identity", position="stack") +
+  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
+  ylab("Relative Abundance (> 0.1%) \n") +
+  theme_bw()
+
+p$data$Timepoint <- factor(p$data$Timepoint, levels = sample_order)
+ggsave(here("figs/18s_taxonomy_relative_abundance.pdf"), p)
+print(p)
+```
+
+
+```{r 18s Ordination}
+pseq_ord_18s <- ordinate(physeq_18s, "PCoA", "bray")
+# pseq_ord <- ordinate(physeq, "MDS", "unifrac")
+p <- plot_ordination(physeq_18s, pseq_ord_18s, type="samples", color="Timepoint") +
+  geom_point(size=1, alpha=0.3) + 
+  stat_ellipse(aes(fill = Timepoint), geom="polygon",level=0.95,alpha=0.1) +
+  theme_bw()
+
+ggsave(here("figs/18s_ordination.pdf"), p)
 print(p)
 ```
 
