@@ -153,6 +153,14 @@ ggsave(here("figs", paste0("variance-explained_", fmodel_name, ".pdf")))
 plot_data_overview(MOFAobject)
 ggsave(here("figs", paste0("data-overview_", fmodel_name, ".pdf")))
 save(MOFAobject, file=here("data/processed/MOFAobject.RData"))
+
+#MOFAobject@cache[["variance_explained"]]
+
+# After model ﬁtting, we seleted top 10 factors with minimum of 1.14% average variance explained across all modalities.
+r2 <- calculate_variance_explained(MOFAobject)[["r2_per_factor"]]
+r2_mean <- rowMeans(sapply(r2, rowMeans))
+r2_mean
+min(r2_mean)
 ```
 
 ```{r Correlate with metabolites}

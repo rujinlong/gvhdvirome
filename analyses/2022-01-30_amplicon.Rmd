@@ -93,7 +93,7 @@ print(p)
 sdata_18s <- sample_data(physeq_18s)
 ps0_18s <- merge_samples2(physeq_18s, group = sdata_18s$Timepoint)
 
-ps_phylum_18s <- ps0_18s %>%
+ps_phylum_18s <- ps0 %>%
   tax_glom(taxrank = "Phylum") %>%                 # agglomerate at Phylum level, (Order, Family, ...)
   transform_sample_counts(function(x) {x/sum(x)} ) %>% 
   psmelt() %>% 
