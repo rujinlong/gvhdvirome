@@ -1,4 +1,4 @@
-Package: p0064
+Package: p0064gvhd
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
@@ -7,5 +7,23 @@ Authors@R:
 Description: What the package does (one paragraph).
 License: GPL (>= 3)
 Encoding: UTF-8
-URL: https://github.com/rujinlong/p0064
-BugReports: https://github.com/rujinlong/p0064/issues
+URL: https://github.com/rujinlong/p0064gvhd
+BugReports: https://github.com/rujinlong/p0064gvhd/issues
+Imports: 
+    ape,
+    data.table,
+    dplyr,
+    ggplot2,
+    ggplotify,
+    ggrepel,
+    ggtree,
+    ggtreeExtra,
+    magrittr,
+    stringr,
+    tibble,
+    tidytree,
+    treeio
+RoxygenNote: 7.2.3
+Depends: 
+    R (>= 2.10)
+LazyData: true

@@ -1,0 +1,112 @@
+---
+title: "20230111-vKEGG"
+date: "Compiled at `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'UTC')` UTC"
+output: pdf_document
+params:
+  name: "20230111-vKEGG" # change if you rename file
+---
+
+```{r here, message=FALSE, include=FALSE}
+here::i_am(paste0(params$name, ".Rmd"), uuid = "2a2df215-fd57-4800-b851-be7f0b2885ee")
+```
+
+The purpose of this document is plot KEGG pathway abundance of AMGs. AMGs were detected using DRAM-v.
+
+```{r packages, message=FALSE, warning=FALSE, include=FALSE}
+library(here)
+library(tidyverse)
+library(data.table)
+library(pheatmap)
+```
+
+```{r directories, include=FALSE}
+# create or *empty* the target directory, used to write this file's data: 
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+
+# function to get path to target directory: path_target("sample.csv")
+path_target <- projthis::proj_path_target(params$name)
+
+# function to get path to previous data: path_source("00-import", "sample.csv")
+path_source <- projthis::proj_path_source(params$name)
+```
+
+## Tasks
+
+Heatmap.
+
+```{r include=FALSE}
+dpath <- normalizePath("../data/")
+fin <- here(dpath, "hms/virmerge/files/annotations_with_KEGGpathways.tsv.gz")
+fabundance <- here(dpath, "hms/virmerge/files/abundance/abundance_contigs_tpm.tsv")
+fpath_metadata = here(dpath, "processed/metadata.xls")
+
+df_abundance <- fread(fabundance)
+```
+
+
+```{r echo=FALSE, fig.height=8, fig.width=25, message=FALSE, warning=FALSE}
+df_kegg <- fread(fin) %>% 
+  dplyr::filter(auxiliary_score %in% c(1,2,3)) %>% 
+  dplyr::filter(str_detect(amg_flags, "[MF]")) %>% 
+  dplyr::filter(str_detect(pathid, "^ko")) %>% 
+  mutate(Contig = str_replace_all(fasta, "-cat_[1-6]$", "")) %>% 
+  mutate(pathway = C) %>% 
+  dplyr::select(c(gene, Contig, pathway)) %>% 
+  distinct() %>% 
+  left_join(df_abundance, by = "Contig") %>% 
+  dplyr::select(-c(gene, Contig)) %>% 
+  dplyr::mutate_all(funs(replace(., is.na(.), 0))) %>%
+  group_by(pathway) %>%
+  summarise(across(everything(), sum))
+
+df_kegg2 <- df_kegg %>% 
+  # column_to_rownames("pathway") %>%
+  pivot_longer(-pathway) %>% 
+  group_by(pathway) %>% 
+  summarise(sd = sd(value)) %>% 
+  bind_cols(df_kegg, .) %>% 
+  arrange(desc(sd)) %>% 
+  head(30) %>% 
+  # dplyr::filter(sd > 1000) %>% 
+  dplyr::select(-c(pathway...165, sd)) %>% 
+  column_to_rownames("pathway...1")
+
+df_meta <- readxl::read_excel(fpath_metadata, sheet = "index5") %>% 
+  dplyr::select(c(vid, index5, GvHD, survival1year)) %>% 
+  dplyr::filter(vid != "") %>% 
+  # mutate(vir_Sample_ID = str_replace_all(vir_Sample_ID, "-", "_")) %>% 
+  column_to_rownames("vid")
+
+df_kegg3 <- df_kegg2 %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("sampleid") %>% 
+  dplyr::filter(sampleid %in% rownames(df_meta)) %>% 
+  column_to_rownames("sampleid") %>% 
+  t() %>% 
+  data.frame()
+
+df_metadata <- df_meta[colnames(df_kegg3),]
+
+# plot heatmap using pheatmap
+df_kegg_abundance <- df_kegg3[, rownames(df_metadata)]
+
+plot_kegg <- list(df_kegg_abundance = df_kegg_abundance,
+                  df_metadata = df_metadata)
+saveRDS(plot_kegg, file = path_target("plot_kegg.rds"))
+
+df_kegg_abundance %>% 
+  # convert column to percentage
+  mutate_all(funs(100 * . / sum(.))) %>% 
+  rownames_to_column("kegg") %>% 
+  openxlsx::write.xlsx(file = path_target("kegg_abundance_rel.xlsx"))
+
+df_metadata %>% 
+  rownames_to_column("sample_id") %>% 
+  openxlsx::write.xlsx(file = path_target("metadata.xlsx"))
+
+pheatmap(df_kegg_abundance, cluster_rows = T, cluster_cols = T, 
+         show_rownames = T, show_colnames = T, scale = "column",
+         annotation_col = df_metadata, )
+```
+

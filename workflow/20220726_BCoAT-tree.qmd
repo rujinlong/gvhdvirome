@@ -1,0 +1,122 @@
+---
+title: "BCoAT tree visualization"
+author: 
+  - name: "Jinling Xue"
+    orcid: "0000-0002-8191-4140"
+title-block-banner: true
+date: 2022-07-26
+toc: true
+format:
+  html:
+    toc: true
+    code-fold: true
+    anchor-sections: true
+    smooth-scrol: true
+    link-external-newwindow: true
+    page-layout: full
+params:
+  name: "20220726_BCoAT-tree" # change if you rename file
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+```{r setup, message=FALSE, include=F}
+# uuid::UUIDgenerate()
+here::i_am(paste0(params$name, ".qmd"), uuid = "e379ce2f-bea4-4adf-af8e-c5a1c50a3f7c")
+projthis::proj_create_dir_target(params$name, clean = F)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+```
+
+## Tasks
+
+```{r}
+library(here)
+library(tidyverse)
+library(treedataverse)
+library(pals)
+library(p0064gvhd)
+```
+
+```{r}
+data("bcoat", package = "p0064gvhd")
+tree <- bcoat$tree
+df_anno <- bcoat$anno
+
+colval <- c("#2f4f4f", "#2e8b57", "#800000", "#808000", "#00008b", "#ff4500", "#ffa500", "#ffff00", "#c71585", "#00ff00", "#00fa9a", "#00ffff", "#00bfff", "#9370db", "#0000ff", "#d8bfd8", "#ff00ff", "#eee8aa", "#ffa07a")
+names(colval) = sort(unique(df_anno$Taxonomy))
+
+save_tree <- function(tree, colval, fout, tiplab_size=1, tippoint_size=1.5, legeng_x=1.2, scale=0.75) {
+  # p <- ggtree(tree, aes(color=as.factor(refs)), layout = "fan", branch.length="none") +
+  p <- ggtree(tree, layout = "fan", color="grey") +
+    # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
+    # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
+    geom_tiplab2(aes(subset=(refs!=1), label=Species), size=tiplab_size, align=T, linesize=0.1, hjust = 0) +
+    geom_tiplab2(aes(subset=(Superkingdom=="k__Viruses"), label=Species), size=tiplab_size, color="red", align=T, linesize=0.3, hjust = 0) +
+    # scale_color_manual(values = c("black", "red"), guide="none") +
+    geom_tippoint(aes(color=Taxonomy), alpha=0.7, size=tippoint_size) +
+    scale_color_manual(values = colval) +
+    # ggnewscale::new_scale_fill() +
+    # geom_hilight(ggtree(tree)$data,
+    #              mapping = aes(node=node, fill=as.factor(Family)), alpha=0.3) +
+    theme_tree(legend.position = c(legeng_x, 0.5))
+  
+  p2 <- p + geom_point2(aes(subset=(Superkingdom=="k__Viruses")), size=5, alpha=0.3, color="red")
+  p3 <- ggplotify::as.ggplot(p2, angle=0, scale=scale)
+  ggsave(p3, filename = fout, width = 22, height = 16)
+  return(p2)
+}
+
+tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.pdf"), scale = 0.8, legeng_x = 1.3)
+tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.svg"), scale = 0.8, legeng_x = 1.3)
+```
+
+```{r}
+df_phylum <- tree %>% 
+  tibble::as_tibble() %>% 
+  dplyr::filter(!is.na(.data$Phylum)) %>% 
+  dplyr::select(c("label", "Phylum")) %>% 
+  tibble::column_to_rownames("label")
+
+p_phylum <- gheatmap(tree_vis, df_phylum, offset = -0.95, width = 0.8, colnames = F) +
+  scale_fill_manual(values = alpha(rainbow(10), 0.1)) +
+  ggnewscale::new_scale_fill()
+
+ggsave(p_phylum, filename = path_target("phylum-color.pdf"), width = 22, height = 16)
+```
+
+
+```{r subtree}
+LCA_node <- MRCA(tree, c(df_anno[df_anno$refs==1,][["label"]]))
+
+tree_sub <- tree_vis %>% 
+  as.treedata() %>% 
+  tree_subset(LCA_node, levels_back = 1)
+
+colval_sub <- colval[names(colval) %in% tree_sub@data$Taxonomy]
+tree_vis_sub <- save_tree(tree_sub, colval_sub, path_target("tree_BCoAT_sub.pdf"), 3, 3, 1.35, .78)
+tree_vis_sub <- save_tree(tree_sub, colval_sub, path_target("tree_BCoAT_sub.svg"), 3, 3, 1.35, .78)
+
+
+df_phylum_sub <- tree_sub %>% 
+  tibble::as_tibble() %>% 
+  dplyr::filter(!is.na(.data$Phylum)) %>% 
+  dplyr::select(c("label", "Phylum")) %>% 
+  tibble::column_to_rownames("label")
+
+p_phylum_sub <- gheatmap(tree_vis_sub, df_phylum_sub, offset = -0.6, width = 0.75, colnames = F) +
+  scale_fill_manual(values = alpha(rainbow(4), 0.2)) +
+  ggnewscale::new_scale_fill()
+
+ggsave(p_phylum_sub, filename = path_target("phylum-color_sub.pdf"), width = 22, height = 18)
+ggsave(p_phylum_sub, filename = path_target("phylum-color_sub.svg"), width = 22, height = 18)
+```
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

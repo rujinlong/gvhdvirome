@@ -6,12 +6,12 @@ renv/*
 !renv/activate.R
 tmp
 report
-data/hms
-data/raw
-data/collab
+data*/
 !apps/GvHD/data
 figs
 analyses/*.html
 .ipynb_checkpoints
 apps/GvHD/rsconnect/*
 hpc
+workflow/*
+!workflow/*md

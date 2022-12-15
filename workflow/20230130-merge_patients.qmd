@@ -1,0 +1,131 @@
+---
+title: "20230130-merge_patients"
+title-block-banner: true
+author:
+  - name: Jinlong Ru
+    orcid: 0000-0002-6757-6018
+    email: jinlong.ru@gmail.com
+    affiliations:
+      - name: Institute of Virology, Helmholtz Centre Munich – German Research Center for Environmental Health, 85764 Neuherberg, Germany
+      - neme: Chair of Prevention of Microbial Diseases, School of Life Sciences Weihenstephan, Technical University of Munich, 85354 Freising, Germany
+date: 2023-01-29
+toc: true
+format: gfm
+bibliography: refs.bib
+params:
+  name: "20230130-merge_patients"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+```{r setup, message=FALSE, include=FALSE}
+here::i_am(paste0(params$name, ".qmd"), uuid = "a77f2c0c-bee3-4988-b153-7ae082652b8a")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+library(here)
+library(tidyverse)
+library(data.table)
+
+fin <- path_source("00-rawdata", "virome-RA.xlsx")
+
+df_patient2sample <- openxlsx::read.xlsx(fin, sheet = "Group-1") %>% 
+  setnames(colnames(.), c("sample_id", "project_id", "with_gvhd", "no_gvhd")) %>% 
+  mutate(patient_id = str_replace_all(project_id, "-[0-9]+$", "")) %>% 
+  dplyr::select(c("sample_id", "patient_id"))
+
+df_relab_patient <- openxlsx::read.xlsx(fin, sheet = "GVHD") %>% 
+  dplyr::filter(!is.na(contig_id)) %>% 
+  column_to_rownames("contig_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("sample_id") %>% 
+  dplyr::left_join(df_patient2sample, by = "sample_id") %>% 
+  dplyr::select(-"sample_id") %>% 
+  group_by(patient_id) %>%
+  summarise_all(sum) %>%
+  column_to_rownames("patient_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("feature_id") %>% 
+  mutate(feature_id = str_replace(feature_id, "vout.", "votu_"))
+  
+openxlsx::write.xlsx(df_relab_patient, path_target("virome_RA_mergeby_patient.xlsx"))
+```
+
+```{r}
+df_abx2sample <- openxlsx::read.xlsx(fin, sheet = "Group-2") %>% 
+  setnames(colnames(.), c("sample_id", "project_id", "with_antibiotics")) %>% 
+  mutate(patient_id = str_replace_all(project_id, "-[0-9]+$", "")) %>% 
+  mutate(patient_id = paste0(patient_id, "_", with_antibiotics)) %>% 
+  dplyr::select(c("sample_id", "patient_id"))
+
+df <- openxlsx::read.xlsx(fin, sheet = "ABX") %>% 
+  dplyr::filter(!is.na(contig_id)) %>% 
+  column_to_rownames("contig_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("sample_id") %>% 
+  dplyr::left_join(df_abx2sample, by = "sample_id")
+
+df2 <- df %>% 
+  dplyr::filter(!is.na(patient_id)) %>% 
+  dplyr::select(-"sample_id") %>% 
+  group_by(patient_id) %>%
+  summarise_all(sum) %>% 
+  column_to_rownames("patient_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("feature_id") %>% 
+  mutate(feature_id = str_replace(feature_id, "votu", "votu_"))
+
+openxlsx::write.xlsx(df2, path_target("virome_RA_mergeby_antibiotics.xlsx"))
+```
+
+```{r}
+fin_af <- path_source("00-rawdata", "virome-AF.xlsx")
+
+dfaf_meta <- openxlsx::read.xlsx(fin_af, sheet = "Group3") %>% 
+  setnames(colnames(.), c("sample_id", "project_id", "hospital", "with_af")) %>% 
+  mutate(patient_id = str_replace_all(project_id, "-[0-9]+$", "")) %>% 
+  mutate(patient_id = paste0(patient_id, "_", with_af)) %>% 
+  dplyr::select(c("sample_id", "patient_id"))
+
+dfaf_assay <- openxlsx::read.xlsx(fin_af, sheet = "AF") %>% 
+  dplyr::filter(!is.na(contig_id)) %>% 
+  column_to_rownames("contig_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("sample_id") %>% 
+  dplyr::left_join(df_af, by = "sample_id")
+
+dfaf_assay2 <- dfaf_assay %>% 
+  # dplyr::select(c(sample_id, patient_id))
+  dplyr::filter(!is.na(patient_id)) %>% 
+  dplyr::select(-"sample_id") %>% 
+  group_by(patient_id) %>%
+  summarise_all(sum) %>% 
+  column_to_rownames("patient_id") %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("feature_id")
+
+openxlsx::write.xlsx(dfaf_assay2, path_target("virome_RA_mergeby_antifungal.xlsx"))
+```
+
+## Tasks
+
+The first task is ...
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

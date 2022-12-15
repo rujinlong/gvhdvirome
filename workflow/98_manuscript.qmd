@@ -1,0 +1,18 @@
+---
+title: "methods of viromics analyses"
+author: "Jinling Xue"
+format: docx
+bibliography: refs.bib
+---
+
+##### Virome sequence processing
+
+Raw reads were processed with fastp (v0.20.1) [@2018-Fastp_Chen] to remove adaptors and low-quality bases. Remaining reads were deduplicated using dedupe.sh from bbmap suite (v38.76) ([https://sourceforge.net/projects/bbmap](https://sourceforge.net/projects/bbmap)); accessed on 29 January 2020). Then the obtained reads were assembled into contigs using metaSPAdes (v3.14.0) [@2017-MetaSPAdes_Nurk] with default parameters retaining only contigs longer than 1 kb. Redundant contigs were removed using dedupe.sh. Remaining contigs were used to predict viral sequences by the combination of VirSorter2 [@2021-VirSorter2_Guo], CAT (v5.0.4) [@2019-Robust_vonMeijenfeldt] and DeepVirFinder (v1.0) [@2020-Identifying_Ren]. Contigs predicted as category 1 and 2 by VirSorter2, or predicted as viruses by CAT, were classified as viruses. Contigs were also classified as viruses if they were predicted as category 3 by VirSorter2 or could not be classified to taxonomy by CAT but predicted as a virus by DeepVirFinder with q value < 0.01. To further reduce the redundancy of the contig library, we clustered contigs following the “rapid genome clustering based on pairwise ANI” protocol in CheckV, which ensures the contigs in the same cluster sharing more than 95% identity and 80% coverage on the short contigs. The longest contig of each cluster were selected as representatives for downstream analysis. Clean reads of each sample were mapped to the representative contigs using minimap2 [@2018-Minimap2_Li]. Abundance profiles including read counts and TPM were calculated using CoverM (v0.6.1) ([https://github.com/wwood/CoverM](https://github.com/wwood/CoverM)). Viral bins were constructed using PHAMB [@2022-Genome_Johansen]. Abundance of each bin was obtained by aggregate abundance of their contig members. ORFs were predicted using Prodigal (v2.6.3) [@2010-Prodigal_Hyatt] and provided to vConTACT2 [@2019-Taxonomic_BinJang] for taxonomy annotation. For contigs and bins that could not be assigned a taxonomy by vConTACT2, CAT annotations were used.
+
+##### Virome statistical analysis
+
+Viral richness (Ace) and diversity (Effective Shannon Index) and Principal Coordinates Analysis (PCoA) that based on “Bray-Curtis” similarities was conducted using vegan package [@2003-VEGAN_Dixon] in R (v4.0.2). The significant difference was determined by Permutational Multivariate Analysis of Variance (PERMANOVA). Statistical analyses were performed in R for the Kruskal-Wallis with Dunn’s post hoc test. Meanwhile, multiple testing corrections were used to modify the *P* value using the “Bonferroni Holm” method. Graphs were generated in GraphPad Prism version 9 and R ggplot2 package [@2016-Ggplot2_Wickham].
+
+##### BCoAT phylogenetic analysis
+
+BCoAT gene were identified in viral genes using hmmscan searching against HMM profile model of BCoAT in NCBI protein family database (accession: TIGR03948.1). There are two contigs contain BCoAT genes, each of them in a VC cluster that contains more than one member contigs. Homologous genes of viral-encoded BCoAT were obtained using MMseqs2 [@2017-MMseqs2_Steinegger] to search against NCBI NR database. Obtained homologous protein sequences were aligned using using MAFFT v7.475 [@2013-MAFFT_Katoh], trimming with trimAl v1.4.rev15 [@2009-TrimAl_Capella-Gutierrez] to remove bases with <50% coverage, and creating a phylogenetic tree using FastTree v2.1.10 [@2010-FastTree_Price]. The phylogenetic tree were visualized using ggtree package in R [@2020-Using_Yu].
