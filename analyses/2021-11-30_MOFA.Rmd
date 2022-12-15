@@ -146,13 +146,14 @@ MOFAobject <- prepare_mofa(
 )
 
 # -------- Run MOFA2 --------
-MOFAobject <- run_mofa(MOFAobject, outfile = here("results", paste0("MOFA_model_", fmodel_name, "_nfactors-",as.character(nfactors), ".hdf5")))
+# MOFAobject <- run_mofa(MOFAobject, outfile = here("results", paste0("MOFA_model_", fmodel_name, "_nfactors-",as.character(nfactors), ".hdf5")))
 # plt_cum_var(MOFAobject, here("figs", paste0("cum-var_", fmodel_name, ".pdf")))
-plot_variance_explained(MOFAobject, plot_total = TRUE)
-ggsave(here("figs", paste0("variance-explained_", fmodel_name, ".pdf")))
-plot_data_overview(MOFAobject)
-ggsave(here("figs", paste0("data-overview_", fmodel_name, ".pdf")))
-save(MOFAobject, file=here("data/processed/MOFAobject.RData"))
+# plot_variance_explained(MOFAobject, plot_total = TRUE)
+# ggsave(here("figs", paste0("variance-explained_", fmodel_name, ".pdf")))
+# plot_data_overview(MOFAobject)
+# ggsave(here("figs", paste0("data-overview_", fmodel_name, ".pdf")))
+# save(MOFAobject, file=here("data/processed/MOFAobject.RData"))
+load(here("data/processed/MOFAobject.RData"))
 
 #MOFAobject@cache[["variance_explained"]]
 

@@ -14,3 +14,4 @@ figs
 analyses/*.html
 .ipynb_checkpoints
 apps/GvHD/rsconnect/*
+hpc

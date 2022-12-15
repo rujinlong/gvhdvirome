@@ -1,6 +1,8 @@
 ---
 title: "BCoAT analyses"
-author: "Jinling Xue"
+author: 
+  - name: "Jinling Xue"
+    orcid: "0000-0002-8191-4140"
 title-block-banner: true
 subtitle: "Analyses of the BCoAT viral contigs"
 date: 2022-09-11
@@ -13,7 +15,6 @@ format:
     smooth-scrol: true
     link-external-newwindow: true
     page-layout: full
-    self-contained: true
 editor: visual
 ---
 
@@ -55,9 +56,15 @@ vc <- fread(fp_vc) %>% dplyr::select(-V1)
 
 ```{r contigs_contain_BCoAT}
 # Contigs contain BCoAT
-contigs_contain_bcoat <- c("BAM6_V__NODE_3_length_90756_cov_3.612584-cat_2",
-                           "BAF3_V__NODE_17_length_77772_cov_3.675859-cat_2")
+contigs_contain_bcoat <- c("BAM6_V__NODE_3_length_90756_cov_3.612584-cat_2",     # Bin: BAM6_V__183
+                           "BAF3_V__NODE_17_length_77772_cov_3.675859-cat_2")    # Bin: BAF3_V__502
+
 ```
+
+These contigs are in bin:
+
+-   BAM6_V__183: BAM6_V__NODE_3_length_90756_cov_3.612584-cat_2
+-   BAF3_V__502: BAF3_V__NODE_17_length_77772_cov_3.675859-cat_2
 
 ```{r get_VC_members}
 #| echo: false
