@@ -45,30 +45,34 @@ df_anno <- bcoat$anno
 
 colval <- c("#2f4f4f", "#2e8b57", "#800000", "#808000", "#00008b", "#ff4500", "#ffa500", "#ffff00", "#c71585", "#00ff00", "#00fa9a", "#00ffff", "#00bfff", "#9370db", "#0000ff", "#d8bfd8", "#ff00ff", "#eee8aa", "#ffa07a")
 names(colval) = sort(unique(df_anno$Taxonomy))
+colval[["k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Oscillospiraceae"]] <- "#3AB0FF"
+colval[["k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Lachnospiraceae"]] <- "#F87474"
+colval[["k__Viruses;p__;c__;o__;f__"]] <- "#FC8008"
+colval[["k__Viruses;p__Uroviricota;c__Caudoviricetes;o__Caudovirales;f__Myoviridae"]] <- "#FC8008"
 
-save_tree <- function(tree, colval, fout, tiplab_size=1, tippoint_size=1.5, legeng_x=1.2, scale=0.75) {
+save_tree <- function(tree, colval, fout, tiplab_size=1, tippoint_size=2, legeng_x=1.2, scale=0.75) {
   # p <- ggtree(tree, aes(color=as.factor(refs)), layout = "fan", branch.length="none") +
   p <- ggtree(tree, layout = "fan", color="grey") +
     # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
     # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
-    geom_tiplab2(aes(subset=(refs!=1), label=Species), size=tiplab_size, align=T, linesize=0.1, hjust = 0) +
-    geom_tiplab2(aes(subset=(Superkingdom=="k__Viruses"), label=Species), size=tiplab_size, color="red", align=T, linesize=0.3, hjust = 0) +
+    # geom_tiplab2(aes(subset=(refs!=1), label=Species), size=tiplab_size, align=T, linesize=0.1, hjust = 0) +
+    geom_tiplab2(aes(subset=(Superkingdom=="k__Viruses"), label=Species), size=tiplab_size, color="red", align=F, linesize=0, hjust = -0.3) +
     # scale_color_manual(values = c("black", "red"), guide="none") +
-    geom_tippoint(aes(color=Taxonomy), alpha=0.7, size=tippoint_size) +
-    scale_color_manual(values = colval) +
+    geom_tippoint(aes(color=Taxonomy), alpha=1, size=tippoint_size) +
+    scale_color_manual(values = colval)
     # ggnewscale::new_scale_fill() +
     # geom_hilight(ggtree(tree)$data,
     #              mapping = aes(node=node, fill=as.factor(Family)), alpha=0.3) +
-    theme_tree(legend.position = c(legeng_x, 0.5))
+    # theme_tree(legend.position = c(legeng_x, 0.5))
   
-  p2 <- p + geom_point2(aes(subset=(Superkingdom=="k__Viruses")), size=5, alpha=0.3, color="red")
-  p3 <- ggplotify::as.ggplot(p2, angle=0, scale=scale)
+  p <- p + geom_point2(aes(subset=(Superkingdom=="k__Viruses")), size=5, alpha=1, color="#FC8008")
+  p3 <- ggplotify::as.ggplot(p, angle=0, scale=scale)
   ggsave(p3, filename = fout, width = 22, height = 16)
-  return(p2)
+  return(p)
 }
 
 tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.pdf"), scale = 0.8, legeng_x = 1.3)
-tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.svg"), scale = 0.8, legeng_x = 1.3)
+tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.png"), scale = 0.8, legeng_x = 1.3)
 ```
 
 ```{r}
@@ -108,8 +112,11 @@ p_phylum_sub <- gheatmap(tree_vis_sub, df_phylum_sub, offset = -0.6, width = 0.7
   scale_fill_manual(values = alpha(rainbow(4), 0.2)) +
   ggnewscale::new_scale_fill()
 
-ggsave(p_phylum_sub, filename = path_target("phylum-color_sub.pdf"), width = 22, height = 18)
-ggsave(p_phylum_sub, filename = path_target("phylum-color_sub.svg"), width = 22, height = 18)
+p5 <- tree_vis_sub +
+  geom_treescale(fontsize=6, linesize=1, offset=1, x=0.5, y=0, width = 0.1)
+ggsave(filename = path_target("phylum-color_sub.pdf"), p5, width = 22, height = 18)
+ggsave(filename = path_target("phylum-color_sub.png"), p5, width = 18, height = 14)
+ggsave(filename = path_target("phylum-color_sub.svg"), p5, width = 18, height = 14)
 ```
 
 

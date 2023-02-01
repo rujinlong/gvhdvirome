@@ -1633,6 +1633,18 @@
         "vipor"
       ]
     },
+    "ggfittext": {
+      "Package": "ggfittext",
+      "Version": "0.9.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "42aafda63a2012fb3b928fef01d96698",
+      "Requirements": [
+        "ggplot2",
+        "shades",
+        "stringi"
+      ]
+    },
     "ggforce": {
       "Package": "ggforce",
       "Version": "0.4.1",
@@ -1666,6 +1678,45 @@
       "Requirements": [
         "ggplot2",
         "rlang"
+      ]
+    },
+    "gggenes": {
+      "Package": "gggenes",
+      "Version": "0.4.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "479a12ca982385be9b20ba4c0aba4ab6",
+      "Requirements": [
+        "ggfittext",
+        "ggplot2",
+        "rlang"
+      ]
+    },
+    "gggenomes": {
+      "Package": "gggenomes",
+      "Version": "0.9.5.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "thackl",
+      "RemoteRepo": "gggenomes",
+      "RemoteRef": "master",
+      "RemoteSha": "f70d3fae346d9494f453ddf11f9393a04c649674",
+      "Remotes": "github::thackl/thacklr, bioc::release/rtracklayer",
+      "Hash": "892a3b447892480fd445cc05134160b6",
+      "Requirements": [
+        "dplyr",
+        "gggenes",
+        "ggplot2",
+        "jsonlite",
+        "purrr",
+        "readr",
+        "snakecase",
+        "stringr",
+        "thacklr",
+        "tibble",
+        "tidyr",
+        "vctrs"
       ]
     },
     "ggnewscale": {
@@ -3260,6 +3311,14 @@
         "registry"
       ]
     },
+    "shades": {
+      "Package": "shades",
+      "Version": "1.4.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3a2cf5eecb2cbca814d01d56bfb51494",
+      "Requirements": []
+    },
     "shape": {
       "Package": "shape",
       "Version": "1.4.6",
@@ -3322,6 +3381,17 @@
       "Hash": "c956d93f6768a9789edbc13072b70c78",
       "Requirements": [
         "Rcpp"
+      ]
+    },
+    "snakecase": {
+      "Package": "snakecase",
+      "Version": "0.11.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4079070fc210c7901c0832a3aeab894f",
+      "Requirements": [
+        "stringi",
+        "stringr"
       ]
     },
     "snow": {
@@ -3481,6 +3551,24 @@
         "rlang",
         "waldo",
         "withr"
+      ]
+    },
+    "thacklr": {
+      "Package": "thacklr",
+      "Version": "0.0.0.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "thackl",
+      "RemoteRepo": "thacklr",
+      "RemoteRef": "master",
+      "RemoteSha": "2ff883e648a0f8423df757ac80672ac2c809ca47",
+      "Remotes": "bioc::release/ggtree",
+      "Hash": "875bc413b66e08ade6f23adfb1bfabdb",
+      "Requirements": [
+        "ggtree",
+        "magrittr",
+        "tidyverse"
       ]
     },
     "tibble": {
@@ -3651,13 +3739,15 @@
     },
     "treeio": {
       "Package": "treeio",
-      "Version": "1.22.0",
-      "Source": "Bioconductor",
-      "git_url": "https://git.bioconductor.org/packages/treeio",
-      "git_branch": "RELEASE_3_16",
-      "git_last_commit": "eb24a85",
-      "git_last_commit_date": "2022-11-01",
-      "Hash": "79eb206300fb5e5feea1f508a8166eba",
+      "Version": "1.23.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "GuangchuangYu",
+      "RemoteRepo": "treeio",
+      "RemoteRef": "master",
+      "RemoteSha": "db8580345375480eb31ab99c139c59bb8fcdad9b",
+      "Hash": "433b442fbf3eaa237278f697e41d4208",
       "Requirements": [
         "ape",
         "dplyr",
