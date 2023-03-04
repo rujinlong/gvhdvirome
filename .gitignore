@@ -16,3 +16,7 @@ hpc
 workflow/*
 !workflow/*md
 !workflow/*ipynb
+!workflow/*.html
+pyenv
+
+/.luarc.json

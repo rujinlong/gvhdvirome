@@ -1,0 +1,124 @@
+---
+title: "33-heatmap"
+title-block-banner: true
+author:
+  - name: Jinling Xue
+    orcid: 0000-0002-8191-4140
+toc: true
+code-fold: true
+format: 
+  html:
+    embed-resources: true
+    smooth-scroll: true
+params:
+  name: "33-heatmap"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "1896ccf4-a7df-47ab-ab81-c0e3a2b10781")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+library(here)
+library(tidyverse)
+library(pheatmap)
+```
+
+## Tasks
+
+The first task is ...
+
+### PHeatmap-V.R
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Heatmap-vOTU/PHeatmap-V.R`
+
+```{r}
+fin11 <- here(path_data, '2groups_TPM_new.txt')
+fin12 <- here(path_data, 'Group-new.txt')
+fout11 <- path_target("Heatmap-2groups-TPM-new.png")
+
+Family<-read.delim(fin11, header=T,row.names=1,check.names=F)
+
+#fundamental function
+pheatmap(log10(Family+1))
+
+#input the group information
+Group <- read.delim(fin12, sep = '\t', stringsAsFactors = FALSE)
+
+#link the Family to the Group information chosen
+annot_data1 <- data.frame(row.names = colnames(Family), 
+                          Day = Group$Day)
+
+
+# Specify colors 
+ann_colors = list(Day = c("d -7" = "#3F7F02", 
+                          "d 0" = "#FDCC65",
+                          "d +7" ="#FC8008",
+                          "d +14" ="#FC6665",
+                          "d +21" ="#FB0106",
+                          "d +28" ="#FB027F"))
+names(ann_colors$Day) = annot_data1$Day
+
+pheatmap(mat=log10(Family+1),
+             cluster_col = F,cluster_rows = T,
+             border=FALSE,cellheight = 36, cellwidth =18,
+             show_rownames = T, show_colnames = F,
+             fontsize = 8,
+             fontfamily = "Arial",
+             annotation_col = annot_data1,
+             filename = fout11,
+             width = 4.5,
+             height = 2,
+             annotation_colors = ann_colors,
+             )
+```
+
+### PHeatmap-Species.R
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Heatmap-vOTU/PHeatmap-Species.R`
+
+```{r}
+fin21 <- here(path_data, "Species-heatmap.txt")
+fin22 <- here(path_data, 'Group2.txt')
+
+Species<-read.delim(fin21, header=T,row.names=1,check.names=F)
+
+#fundemantal function
+pheatmap(Species)
+
+#input the group information
+Group2 <- read.delim(fin22, sep = '\t', stringsAsFactors = FALSE)
+
+#link the Species to the Group information chosen
+annot_data1 <- data.frame(row.names = colnames(Species), 
+                          Time = Group2$Time,GvHD=Group2$GvHD)
+
+# Specify colors 
+ann_colors = list(Time= c("COND" = "#3F7F02", "d0" = "#FDCC65","d7" ="#FC8008","d14" ="#FC6665","d21" ="#FB0106","d28" ="#FB027F","POST" ="#800080","IDX" ="#0F7FFE","DONOR" ="#CCCCCB"),GvHD=c("0"= "#e3f2fd", "1" = "#90caf9","2"= "#0d47a1"))
+p <-pheatmap(mat=Species,scale="column", cluster_col = F,cluster_rows = T,border=FALSE,cellheight = 6, cellwidth =3,show_rownames = T, show_colnames = F,annotation_col = annot_data1,annotation_colors = ann_colors)
+p
+```
+
+
+
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

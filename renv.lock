@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.1",
+    "Version": "4.2.2",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -27,6 +27,11 @@
         "URL": "https://cloud.r-project.org"
       }
     ]
+  },
+  "Python": {
+    "Version": "3.10.9",
+    "Type": "virtualenv",
+    "Name": "./pyenv"
   },
   "Packages": {
     "BH": {
@@ -2831,10 +2836,10 @@
       "RemoteHost": "api.github.com",
       "RemoteUsername": "rujinlong",
       "RemoteRepo": "projthis",
-      "RemoteRef": "main",
-      "RemoteSha": "4f3936be3243a058e90881d7c55b0b6681f55230",
+      "RemoteRef": "99d175be7caf15d4f04f6b39d6c4b8ee2e734ba4",
+      "RemoteSha": "99d175be7caf15d4f04f6b39d6c4b8ee2e734ba4",
       "Remotes": "r-lib/testthat",
-      "Hash": "81d259e964fe7dcbe6c2174a2a23703e",
+      "Hash": "1f947873ce474ab2a116b3bf4f58f8de",
       "Requirements": [
         "assertthat",
         "callr",

@@ -1,0 +1,420 @@
+---
+title: "31-alpha_diversity"
+title-block-banner: true
+author:
+  - name: Jinling Xue
+    orcid: 0000-0002-8191-4140
+toc: true
+code-fold: true
+format: 
+  html:
+    embed-resources: true
+    smooth-scroll: true
+params:
+  name: "31-alpha_diversity"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "53b30f44-6e4d-4047-9c49-9d2246519948")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+#| message: false
+#| include: false
+library(here)
+library(tidyverse)
+library(vegan)
+library(picante)
+library(ggpubr)
+```
+
+## Tasks
+
+The first task is ...
+
+### Calculate alpha diversity
+
+Code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-Calculate.R`
+
+```{r}
+#| message: false
+alpha <- function(x, tree = NULL, base = exp(1)) {
+  est <- estimateR(x)
+  Richness <- est[1, ]
+  Chao1 <- est[2, ]
+  ACE <- est[4, ]
+  Shannon <- diversity(x, index = 'shannon', base = base)
+  Simpson <- diversity(x, index = 'simpson')    #Gini-Simpson ??????
+  InvSimpson <- diversity(x, index = 'invsimpson') 
+  Pielou <- Shannon / log(Richness, base)
+  goods_coverage <- 1 - rowSums(x == 1) / rowSums(x)
+  
+  result <- data.frame(Richness, Shannon, Simpson, InvSimpson,Pielou, Chao1, ACE, goods_coverage)
+  if (!is.null(tree)) {
+    PD_whole_tree <- pd(x, tree, include.root = FALSE)[1]
+    names(PD_whole_tree) <- 'PD_whole_tree'
+    result <- cbind(result, PD_whole_tree)
+  }
+  result
+}
+
+fin_alpha <- here(path_data, 'Alpha_AF_2.txt')
+fout_alpha <- path_target('Alpha_AF_Final_2.csv')
+
+otu <- read.delim(fin_alpha, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+otu <- t(otu)
+alpha_all <- alpha(otu, base = 2)
+write.csv(alpha_all, fout_alpha, quote = FALSE)
+```
+
+### Inverse simpson ABX
+
+Code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Inverse-simpson-ABX.R`
+
+```{r}
+#| message: false
+fin_abx <- here(path_data, 'Alpha_ABX_Final.txt')
+fout_abx <- path_target("Alpha-InvSimpson-5D-Tall.png")
+otu <- read.delim(fin_abx, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No ABX","ABX"))
+my_comparisons <- list(c("No ABX", "ABX"))
+
+p0<-ggboxplot(otu,
+              x="Group",
+              y="InvSimpson",
+              color="Group",
+              palette = "jama",
+              add = "jitter")
+p0
+p1<-p0+color_palette(c("#0F7FFE", "#FB0106"))+labs( y = "Inverse Simpson",x="")+theme(legend.position = "none", axis.text.x=element_text(family="Arial",colour="black",angle = 45,vjust = 0.15,hjust = 0.5))
+p1
+p2<-p1+stat_compare_means(comparisons=my_comparisons,label = "p.signif", label.x = 1.5, label.y = 25)
+p2
+p3<- ggpar(p2, ylim = c(0, 30))
+p3
+png(file = fout_abx, width =700,height = 1400,units = "px",res =300) 
+dev.off()
+```
+
+### Inverse simplson GVHD
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Inverse-simpson-GVHD.R`
+
+```{r}
+#| message: false
+# fin_1e <- here(path_data, 'Alpha-1E-Final.txt')
+fin_1e <- here(path_data, 'Alpha_GVHD_Final.txt')
+fout_1e <- path_target("Alpha-Inversesimpson-5a.png")
+
+otu <- read.delim(fin_1e, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No GI-GvHD","GI-GvHD"))
+
+p0<-ggboxplot(otu,
+              x="Group",
+              # y="Inversesimpson",
+              y="InvSimpson",
+              color="Group",
+              palette = "jama",
+              add = "jitter",
+              width =0.5)
+p0
+p1<-p0+color_palette(c("#0F7FFE", "#FB0106"))+labs( y = "Inverse Simpson",x="")+theme(legend.position = "none")
+p1
+p2<-p1+stat_compare_means(aes(label = ..p.signif..),
+                          method = "t.test", ref.group = "No GI-GvHD")+theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45,vjust = 0.15,hjust = 0.5))
+p2
+p3<- ggpar(p2, ylim = c(0, 30))
+p3
+png(file = fout_1e, width =1800,height = 1400,units = "px",res =300) 
+dev.off()
+```
+
+
+### Alpha-1S
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-1S.R`
+
+```{r}
+fin_1s <- here(path_data, 'Alpha-1S-Final.txt')
+fout_1s <- path_target("Alpha-Shannon-1s.png")
+
+otu <- read.delim(fin_1s, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("Donor","MUC","RGB"))
+p0<-ggboxplot(otu,
+              x="Group",
+              y="Shannon",
+              color="Group",
+              palette = "jama",
+              add = "jitter")
+p0
+p1<-p0+color_palette(c("#CCCCCB", "#107F01","#FC8008"))+labs( y = "Effective Shannon",x="")+theme(legend.position = "right")
+p1
+p2<-p1+theme(text=element_text(family="Arial",colour="black"))
+p2
+p3<- ggpar(p2, ylim = c(0, 600))
+p3
+png(file = fout_1s, width =1800,height = 1400,units = "px",res =300) 
+print(p3)
+dev.off()
+```
+
+
+### Alpha-4A
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-4A.R`
+
+```{r}
+fin_4e <- here(path_data, 'Alpha-4E-Final.txt')
+fout_4e <- path_target("Alpha-Shannon-4Anew.png")
+
+otu <- read.delim(fin_4e, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No ABX","ABX"))
+my_comparisons <- list(c("No ABX", "ABX"))
+p0<-ggboxplot(otu,
+              x="Group",
+              y="Shannon",
+              color="Group",
+              palette = "jama",
+              add = "jitter")
+p0
+p1<-p0+color_palette(c("#0F7FFE", "#FB0106"))+labs( y = "Effection Shannon",x="")+theme(legend.position = "none", axis.text.x=element_text(family="Arial",colour="black",angle = 45,vjust = 0.15,hjust = 0.5))
+p1
+p2<-p1+stat_compare_means(comparisons=my_comparisons)
+p2
+p3<- ggpar(p2, ylim = c(0, 1000))
+p3
+png(file = fout_4e, width =1800,height = 1400,units = "px",res =300) 
+print(p3)
+dev.off()
+```
+
+
+### Alpha-Antifungals
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-Antifungals.R`
+
+```{r}
+fin_gvhd <- here(path_data, 'Alpha_GVHD_Final.txt')
+fout_gvhd <- path_target("Alpha-Richness-5A-TALL.png")
+
+otu <- read.delim(fin_gvhd, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No GI-GvHD","GI-GvHD"))
+my_comparisons <- list(c("No GI-GvHD", "GI-GvHD"))
+p0 <- ggboxplot(otu,
+              x="Group",
+              y="Richness",
+              color="Group",
+              palette = "jama",
+              add = "jitter",
+              width =0.5)
+p1<-p0+color_palette(c("#0F7FFE", "#FB0106"))+labs( y = "Richness",x="")+theme(legend.position = "none")
+
+p2<-p1+stat_compare_means(comparisons=my_comparisons,label = "p.signif", label.x = 1.5, label.y = 2000)+theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45,vjust = 0.15,hjust = 0.5))
+p2
+p3<- ggpar(p2, ylim = c(0, 2500))
+
+ggsave(fout_gvhd, p3, width =700,height = 1400,units = "px" )
+#png(file = "Alpha-Richness-5A-TALL.png",width =700,height = 1400,units = "px",res =300) 
+```
+
+
+### Alpha-GvHD-1A
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-GvHD-1A.R`
+
+```{r}
+fin_1a <- here(path_data, "Alpha-1A.txt")
+fout_1a <- path_target("Alpha-Shannon-1Anew.png")
+
+otu <- read.delim(fin_1a, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Timepoints<-factor(otu$Timepoints,levels = c("Day -7","Day 0","Day +7","Day +14","Day +21","Day +28","> Day +35"))
+my_comparisons <- list(c("Day -7", "Day +14")) 
+p0<-ggboxplot(otu,
+             x="Timepoints",
+             y="Shannon",
+             color="Timepoints",
+             palette = "jama",
+             add = "jitter")
+p0
+p1<-p0+color_palette(c("#3F7F02", "#FDCC65", "#FC8008","#FC6665","#FB0106","#FB027F","#800080"))+labs( y = "Richness",x="")+theme(legend.position = "right")
+p1
+p2<-p1+theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45, vjust = 0.3,hjust = 0.5))
+p2
+p3<-p2+stat_compare_means(comparisons=my_comparisons)
+p3
+p4<- ggpar(p3, ylim = c(0, 1000))
+png(file = fout_1a, width =1800,height = 1400,units = "px",res =300) 
+print(p4)
+dev.off()
+```
+
+
+### Alpha-Richness-4E
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Alpha-Richness-4E.R`
+
+```{r}
+fin_early <- here(path_data, "Alpha-Early-final.txt")
+fout_early <- path_target("Alpha-Shannon-ABX.png")
+otu <- read.delim(fin_early, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No ABX","Early ABX","Late ABX"))
+my_comparisons <- list(c("No ABX","Early ABX"))
+p0<-ggboxplot(otu,
+              x="Group",
+              y="Shannon",
+              color="Group",
+              palette = "jama",
+              add = "jitter")
+p0
+p1<-p0+color_palette(c("#90EE90", "#FFC0CB","#DC143C"))+labs( y = "Shannon effective",x="")+theme(legend.position = "none",text=element_text(family="Arial",colour="black"))
+p1
+p2<-p1+stat_compare_means(label.y = 750)+stat_compare_means(comparisons=my_comparisons)
+p2
+p3<- ggpar(p2, ylim = c(0, 1000))
+p3
+png(file = fout_early, width =1800,height = 1400,units = "px",res =300) 
+dev.off()
+```
+
+### Dot Alpha
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Dotsplot-Alpha.R`
+
+```{r}
+fin_time <- here(path_data, "Alpha_TIME_Final.txt")
+fout_time <- path_target("Alpha-InvSimpson-Timenew.png")
+
+otu <- read.delim(fin_time, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+
+otu$Timepoints<-factor(otu$Timepoints,levels = c("Day -7","Day 0","Day +7","Day +14","Day +21","Day +28"))
+
+otu <- otu %>%
+  mutate(timepoints2=str_replace(Timepoints, "^.*Day ", "")) %>%
+  mutate(timepoints2 = as.integer(timepoints2)) %>%
+  mutate(timepoints3 = as.character(timepoints2))
+unique(otu$timepoints2)
+p0 <- ggplot(otu,aes(x=timepoints2,y=InvSimpson))+
+  #geom_point(aes(color=Center))+
+  geom_point(position=position_jitter(h=2, w=2),alpha = 0.5, size = 1)+
+  geom_smooth(aes(color=Center))+
+  geom_smooth(color="black")+
+  scale_x_continuous(breaks= otu$timepoints2,
+                   labels=otu$Timepoints)+
+  theme_bw()+
+  theme(legend.position = "right",panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+p0
+p1<-p0+color_palette(c("#FFB562", "#F87474"))+labs( y = "Inverse Simpson",x="")
+p1
+p2<-p1+
+  theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45, vjust = 0.3,hjust = 0.5),axis.text.y=element_text(family="Arial",colour="black"))
+p2
+p3<- ggpar(p2, ylim = c(0, 30))
+png(file = fout_time, width =1200,height = 800,units = "px",res =300) 
+print(p3)
+dev.off()
+
+```
+
+
+### Inverse-simpson-GVHD
+
+code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Inverse-simpson-GVHD.R`
+
+```{r}
+fin_inv <- here(path_data, "Alpha-1E-Final.txt")
+fout_inv <- path_target("Alpha-Inversesimpson-5a_tmp2.png")
+
+otu <- read.delim(fin_inv, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+# theme_bw() +
+#   theme(axis.line = element_line(color='black'),
+#         plot.background = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank())
+
+otu$Group<-factor(otu$Group,levels = c("No GI-GvHD","GI-GvHD"))
+
+p0<-ggboxplot(otu,
+              x="Group",
+              y="Inversesimpson",
+              color="Group",
+              palette = "jama",
+              add = "jitter",
+              width =0.5)
+p0
+p1<-p0+color_palette(c("#0F7FFE", "#FB0106"))+labs( y = "Inverse Simpson",x="")+theme(legend.position = "none")
+p1
+p2<-p1+stat_compare_means(aes(label = ..p.signif..),
+                          method = "t.test", ref.group = "No GI-GvHD")+theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45,vjust = 0.15,hjust = 0.5))
+p2
+p3<- ggpar(p2, ylim = c(0, 125))
+p3
+png(file = fout_inv, width =1800,height = 1400,units = "px",res =300) 
+dev.off()
+```
+
+
+
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```
