@@ -16,7 +16,7 @@ hpc
 workflow/*
 !workflow/*md
 !workflow/*ipynb
+<<<<<<< Updated upstream
 !workflow/*.html
 pyenv
-
 /.luarc.json
