@@ -1,0 +1,139 @@
+---
+title: "41-vKEGG"
+title-block-banner: true
+author:
+  - name: Jinling Xue
+    orcid: 0000-0002-8191-4140
+toc: true
+code-fold: true
+format: 
+  html:
+    embed-resources: true
+    smooth-scroll: true
+bibliography: refs.bib
+params:
+  name: "41-vKEGG"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "136211c6-6fef-47d4-900d-8361e33a94d1")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+library(here)
+library(tidyverse)
+library(data.table)
+library(pheatmap)
+
+fin_kegg <- here(path_data, "annotations_with_KEGGpathways.tsv.gz")
+fin_abundance <- here(path_data, "abundance_contigs_tpm.tsv")
+fin_meta <- here(path_data, "metadata.xlsx")
+fout <- path_target("kegg_abundance.pdf")
+fout_rds <- path_target("plot_kegg.rds")
+fout_relab <- path_target("kegg_abundance_rel.xlsx")
+fout_meta <- path_target("metadata2.xlsx")
+```
+
+## Tasks
+
+The first task is ...
+
+```{r}
+df_abundance <- fread(fin_abundance)
+
+df_kegg <- fread(fin_kegg) %>% 
+  dplyr::filter(auxiliary_score %in% c(1,2,3)) %>% 
+  dplyr::filter(str_detect(amg_flags, "[MF]")) %>% 
+  dplyr::filter(str_detect(pathid, "^ko")) %>% 
+  mutate(Contig = str_replace_all(fasta, "-cat_[1-6]$", "")) %>% 
+  mutate(pathway = C) %>% 
+  dplyr::select(c(gene, Contig, pathway)) %>% 
+  distinct() %>% 
+  left_join(df_abundance, by = "Contig") %>% 
+  dplyr::select(-c(gene, Contig)) %>% 
+  dplyr::mutate_all(funs(replace(., is.na(.), 0))) %>%
+  group_by(pathway) %>%
+  summarise(across(everything(), sum))
+
+df_kegg2 <- df_kegg %>% 
+  # column_to_rownames("pathway") %>%
+  pivot_longer(-pathway) %>% 
+  group_by(pathway) %>% 
+  summarise(sd = sd(value)) %>% 
+  bind_cols(df_kegg, .) %>% 
+  arrange(desc(sd)) %>% 
+  head(30) %>% 
+  # dplyr::filter(sd > 1000) %>% 
+  dplyr::select(-c(pathway...165, sd)) %>% 
+  column_to_rownames("pathway...1")
+
+df_meta <- openxlsx::read.xlsx(fin_meta, sheet = "index5") %>% 
+  dplyr::select(c(vid, index5, GvHD, survival1year)) %>% 
+  dplyr::filter(vid != "") %>% 
+  # mutate(vir_Sample_ID = str_replace_all(vir_Sample_ID, "-", "_")) %>% 
+  column_to_rownames("vid")
+
+df_kegg3 <- df_kegg2 %>% 
+  t() %>% 
+  data.frame() %>% 
+  rownames_to_column("sampleid") %>% 
+  dplyr::filter(sampleid %in% rownames(df_meta)) %>% 
+  column_to_rownames("sampleid") %>% 
+  t() %>% 
+  data.frame()
+
+df_metadata <- df_meta[colnames(df_kegg3),]
+
+# plot heatmap using pheatmap
+df_kegg_abundance <- df_kegg3[, rownames(df_metadata)]
+
+plot_kegg <- list(df_kegg_abundance = df_kegg_abundance,
+                  df_metadata = df_metadata)
+saveRDS(plot_kegg, file = fout_rds)
+```
+
+
+```{r}
+plot_kegg <- readRDS(fout_rds)
+plot_kegg$df_kegg_abundance %>% 
+  # convert column to percentage
+  mutate_all(funs(100 * . / sum(.))) %>% 
+  rownames_to_column("kegg") %>% 
+  openxlsx::write.xlsx(file = fout_relab)
+
+plot_kegg$df_metadata %>% 
+  rownames_to_column("sample_id") %>% 
+  openxlsx::write.xlsx(file = fout_meta)
+
+pheatmap(plot_kegg$df_kegg_abundance, 
+         cluster_rows = T, 
+         cluster_cols = T, 
+         show_rownames = T, 
+         show_colnames = T, 
+         scale = "column",
+         annotation_col = df_metadata,
+         width = 30,
+         height = 8,
+         filename = fout)
+```
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

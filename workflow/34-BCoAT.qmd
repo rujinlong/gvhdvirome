@@ -1,0 +1,347 @@
+---
+title: "34-BCoAT"
+title-block-banner: true
+author:
+  - name: Jinling Xue
+    orcid: 0000-0002-8191-4140
+toc: true
+code-fold: true
+format: 
+  html:
+    embed-resources: true
+    smooth-scroll: true
+    link-external-newwindow: true
+bibliography: refs.bib
+params:
+  name: "34-BCoAT"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "26e340fd-aa78-4934-b38c-d4dbf472640c")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+#| warning: false
+library(here)
+library(tidyverse)
+library(data.table)
+library(treedataverse)
+library(pals)
+library(gggenomes)
+library(gvhdvirome)
+```
+
+## Tasks
+
+### Phylogenetic tree of BCoAT gene
+
+**Updated: 2022-07-26**
+
+```{r}
+#| warning: false
+data("bcoat", package = "p0064gvhd")
+tree <- bcoat$tree
+df_anno <- bcoat$anno
+
+colval <- c("#2f4f4f", "#2e8b57", "#800000", "#808000", "#00008b", "#ff4500", "#ffa500", "#ffff00", "#c71585", "#00ff00", "#00fa9a", "#00ffff", "#00bfff", "#9370db", "#0000ff", "#d8bfd8", "#ff00ff", "#eee8aa", "#ffa07a")
+names(colval) = sort(unique(df_anno$Taxonomy))
+colval[["k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Oscillospiraceae"]] <- "#3AB0FF"
+colval[["k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Lachnospiraceae"]] <- "#F87474"
+colval[["k__Viruses;p__;c__;o__;f__"]] <- "#FC8008"
+colval[["k__Viruses;p__Uroviricota;c__Caudoviricetes;o__Caudovirales;f__Myoviridae"]] <- "#FC8008"
+
+save_tree <- function(tree, colval, fout, tiplab_size=1, tippoint_size=2, legeng_x=1.2, scale=0.75) {
+  # p <- ggtree(tree, aes(color=as.factor(refs)), layout = "fan", branch.length="none") +
+  p <- ggtree(tree, layout = "fan", color="grey") +
+    # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
+    # geom_tiplab(aes(label=Species), size=1, align=TRUE, linesize=.2, hjust=0) +
+    # geom_tiplab2(aes(subset=(refs!=1), label=Species), size=tiplab_size, align=T, linesize=0.1, hjust = 0) +
+    geom_tiplab2(aes(subset=(Superkingdom=="k__Viruses"), label=Species), size=tiplab_size, color="red", align=F, linesize=0, hjust = -0.3) +
+    # scale_color_manual(values = c("black", "red"), guide="none") +
+    geom_tippoint(aes(color=Taxonomy), alpha=1, size=tippoint_size) +
+    scale_color_manual(values = colval)
+    # ggnewscale::new_scale_fill() +
+    # geom_hilight(ggtree(tree)$data,
+    #              mapping = aes(node=node, fill=as.factor(Family)), alpha=0.3) +
+    # theme_tree(legend.position = c(legeng_x, 0.5))
+  
+  p <- p + geom_point2(aes(subset=(Superkingdom=="k__Viruses")), size=5, alpha=1, color="#FC8008")
+  p3 <- ggplotify::as.ggplot(p, angle=0, scale=scale)
+  ggsave(p3, filename = fout, width = 22, height = 16)
+  return(p)
+}
+
+tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.pdf"), scale = 0.8, legeng_x = 1.3)
+tree_vis <- save_tree(tree, colval, path_target("tree_BCoAT.png"), scale = 0.8, legeng_x = 1.3)
+```
+
+```{r}
+#| warning: false
+df_phylum <- tree %>% 
+  tibble::as_tibble() %>% 
+  dplyr::filter(!is.na(.data$Phylum)) %>% 
+  dplyr::select(c("label", "Phylum")) %>% 
+  tibble::column_to_rownames("label")
+
+p_phylum <- gheatmap(tree_vis, df_phylum, offset = -0.95, width = 0.8, colnames = F) +
+  scale_fill_manual(values = alpha(rainbow(10), 0.1)) +
+  ggnewscale::new_scale_fill()
+
+ggsave(p_phylum, filename = path_target("phylum-color.pdf"), width = 22, height = 16)
+```
+
+```{r subtree}
+#| warning: false
+LCA_node <- MRCA(tree, c(df_anno[df_anno$refs==1,][["label"]]))
+
+tree_sub <- tree_vis %>% 
+  as.treedata() %>% 
+  tree_subset(LCA_node, levels_back = 1)
+
+colval_sub <- colval[names(colval) %in% tree_sub@data$Taxonomy]
+tree_vis_sub <- save_tree(tree_sub, colval_sub, path_target("tree_BCoAT_sub.pdf"), 3, 3, 1.35, .78)
+tree_vis_sub <- save_tree(tree_sub, colval_sub, path_target("tree_BCoAT_sub.svg"), 3, 3, 1.35, .78)
+
+
+df_phylum_sub <- tree_sub %>% 
+  tibble::as_tibble() %>% 
+  dplyr::filter(!is.na(.data$Phylum)) %>% 
+  dplyr::select(c("label", "Phylum")) %>% 
+  tibble::column_to_rownames("label")
+
+p_phylum_sub <- gheatmap(tree_vis_sub, df_phylum_sub, offset = -0.6, width = 0.75, colnames = F) +
+  scale_fill_manual(values = alpha(rainbow(4), 0.2)) +
+  ggnewscale::new_scale_fill()
+
+p5 <- tree_vis_sub +
+  geom_treescale(fontsize=6, linesize=1, offset=1, x=0.5, y=0, width = 0.1)
+ggsave(filename = path_target("phylum-color_sub.pdf"), p5, width = 22, height = 18)
+ggsave(filename = path_target("phylum-color_sub.png"), p5, width = 18, height = 14)
+ggsave(filename = path_target("phylum-color_sub.svg"), p5, width = 18, height = 14)
+```
+
+### VC Members of BCoAT-encoding viral contigs
+
+**Updated: 2022-09-11**
+
+BCoAT gene was identified in two viral contigs. In this task, we want to know which viral contigs were in the same viral genus clusters (VCs) with these two BCoAT-encoding viral contigs.
+
+```{r}
+fp_vc <- here(path_data, "genome_by_genome_overview.csv")
+
+# Contigs contain BCoAT
+contigs_contain_bcoat <- c("BAM6_V__NODE_3_length_90756_cov_3.612584-cat_2",     # Bin: BAM6_V__183
+                           "BAF3_V__NODE_17_length_77772_cov_3.675859-cat_2")    # Bin: BAF3_V__502
+
+# functions
+get_vc_members_by_member <- function(vc, member_id) {
+  # vc: genome_by_genome_overview.csv table
+  # member_id: Genome id in vc
+  vc_id = as.character(vc[vc$Genome == member_id,"VC"])
+  
+  vc_members = vc %>% 
+    dplyr::filter(VC == vc_id) %>% 
+    dplyr::select(c(Genome, VC))
+  
+  return(vc_members)
+}
+
+# import data
+vc <- fread(fp_vc) %>% dplyr::select(-V1)
+```
+
+```{r get_VC_members}
+#| echo: false
+#| warning: false
+# function get_vc_members_by_member apply to contigs_contain_bcoat
+vc_members <- lapply(contigs_contain_bcoat, get_vc_members_by_member, vc = vc)
+names(vc_members) <- contigs_contain_bcoat
+
+vc_members <- vc_members %>% 
+  purrr::map_df(~ .x, .id = "representative_contig") %>% 
+  dplyr::mutate(VC_members = Genome, .keep = "unused")
+
+# visualize
+vc_members %>% 
+  DT::datatable(class = "white-space: nowrap")
+```
+
+### BCoAT-encoding viral contig circular plot
+
+```{python pycircos}
+#| warning: false
+#| message: false
+import os
+import matplotlib.pyplot as plt
+import pandas as pd
+import pyscript as psc
+
+fin_phrog = os.path.join(r.path_data, "phrog_annot_v4.tsv")
+fin_BAF3 = os.path.join(r.path_data, "BAF3/BAF3.gbk")
+fin_BAM6 = os.path.join(r.path_data, "BAM6/BAM6.gbk")
+
+psc.main_plot(fin_BAF3, r.path_target(), "BAF3_00080", fin_phrog, label="VC-1")
+psc.main_plot(fin_BAM6, r.path_target(), "BAM6_00020", fin_phrog, label="VC-2")
+
+# plot legend
+df_phrog = psc.read_phrog_annot(fin_phrog)
+df_phrog = df_phrog[["color", "category"]].drop_duplicates()
+df_phrog = df_phrog.append(pd.Series(["#FF0000", "BCoAT"], index=df_phrog.columns), ignore_index=True)
+# create fig with legend
+_, ax = plt.subplots()
+for i, row in df_phrog.iterrows():
+    ax.barh(0, 1, color=row["color"], label=row["category"])
+
+# plot legend in a separate figure
+handles, labels = ax.get_legend_handles_labels()
+fig, ax2 = plt.subplots(figsize=(4.5, 3))
+ax2.xaxis.set_visible(False)
+ax2.yaxis.set_visible(False)
+for spine in ax2.spines.values():
+    spine.set_visible(False)
+ax2.legend(handles, labels, frameon=False, loc="best")
+fig.savefig(os.path.join(r.path_target(), "legend.svg"))
+```
+
+### BCoAT genome comparison visualization using `gggenomes`
+
+```{r BAF3}
+#| warning: false
+fgbk_BAF3 <- here(path_data, "BAF3/BAF3.gbk")
+fgbk_BAF3_bac <- here(path_data, "BAF3/NZ_QUGI01000002.1.gbk")
+fgbks_BAF3 <- c(fgbk_BAF3, fgbk_BAF3_bac)
+ftblastx_BAF3 <- here(path_data, "BAF3/12.easyfig.out")
+fout_BAF3 <- path_target("synteny_BAF3.svg")
+
+
+df_tblastx <- data.table::fread(ftblastx_BAF3, header = FALSE, col.names = c("seq_id", "seq_id2", "pident", "length", "mismatch", "gapopen", "start", "end", "start2", "end2", "evalue", "bitscore")) %>% 
+  mutate(seq_id = "VC-1", seq_id2 = "Pseudoflavonifractor sp. AF19-9AC") %>% 
+  dplyr::select(c(seq_id, start, end, seq_id2, start2, end2, evalue, bitscore, pident)) %>% 
+  dplyr::filter(evalue < 0.001, bitscore>50)
+
+# read in gbk files for gggenomes
+df_genes <- read_feats(fgbks_BAF3) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "NZ_QUGI01000002", "Pseudoflavonifractor sp. AF19-9AC", seq_id)) %>% 
+  dplyr::mutate(type = ifelse(type == "HIT", "CDS", type)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "BAF3", "VC-1", seq_id)) %>% 
+  dplyr::mutate(hit = ifelse(locus_tag %in% c("BAF3_00080", "DWX58_RS03030"), "yes", "no"))
+  
+
+df_seqs <- read_seqs(fgbks_BAF3) %>% 
+  dplyr::select(c(seq_id, length)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "NZ_QUGI01000002", "Pseudoflavonifractor sp. AF19-9AC", seq_id)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "BAF3", "VC-1", seq_id))
+# 
+df_seqs[["start"]] <- c(62500, 32000)
+df_seqs[["end"]] <- c(74000, 46000)
+df_seqs[["length"]] <- df_seqs[["end"]] - df_seqs[["start"]]
+
+p <- gggenomes(seqs = df_seqs, genes = df_genes, links = df_tblastx) +
+  geom_seq(size=1) +
+  geom_bin_label() +
+  geom_gene(aes(fill = hit), size=2, show.legend = F ) +
+  scale_fill_manual(values = c("#ffffbf", "#fc8d59")) +
+  ggnewscale::new_scale("fill") +
+  geom_link(aes(fill = pident), color="white", alpha=0.95, offset = 0.04) +
+  # fill color gradient from white to red
+  scale_fill_gradient(low = "white", high = "#91bfdb") +
+  geom_gene_label(aes(label = product), nudge_y = 0.06, angle = 30, size = 3, check_overlap = T) +
+  # change legend title to "identity (%)"
+  labs(fill = "identity (%)")
+
+ggsave(fout_BAF3, p, width = 18, height = 5, limitsize = F)
+p
+```
+
+
+```{r BAM6}
+#| warning: false
+fgbk_BAM6 <- here(path_data, "BAM6/BAM6.gbk")
+fgbk_BAM6_bac <- here(path_data, "BAM6/NZ_JAKNTI010000022.1.gbk")
+fgbks_BAM6 <- c(fgbk_BAM6, fgbk_BAM6_bac)
+ftblastx_BAM6 <- here(path_data, "BAM6/12.easyfig.out")
+fout_BAM6 <- path_target("synteny_BAM6.svg")
+
+df_tblastx <- data.table::fread(ftblastx_BAM6, header = FALSE, col.names = c("seq_id", "seq_id2", "pident", "length", "mismatch", "gapopen", "start", "end", "start2", "end2", "evalue", "bitscore")) %>% 
+  mutate(seq_id = "VC-2", seq_id2 = "Lawsonibacter sp. OA9") %>% 
+  dplyr::select(c(seq_id, start, end, seq_id2, start2, end2, evalue, bitscore, pident)) %>% 
+  dplyr::filter(evalue < 0.001, bitscore>30)
+
+# read in gbk files for gggenomes
+df_genes <- read_feats(fgbks_BAM6) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "NZ_JAKNTI010000022", "Lawsonibacter sp. OA9", seq_id)) %>% 
+  dplyr::mutate(type = ifelse(type == "HIT", "CDS", type)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "BAM6", "VC-2", seq_id)) %>% 
+  dplyr::mutate(hit = ifelse(locus_tag %in% c("BAM6_00020", "MCG44_RS03045"), "yes", "no"))
+  
+
+df_seqs <- read_seqs(fgbks_BAM6) %>% 
+  dplyr::select(c(seq_id, length)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "NZ_JAKNTI010000022", "Lawsonibacter sp. OA9", seq_id)) %>% 
+  dplyr::mutate(seq_id = ifelse(seq_id == "BAM6", "VC-2", seq_id))
+# 
+df_seqs[["start"]] <- c(15000, 420000)
+df_seqs[["end"]] <- c(25000, 430000)
+df_seqs[["length"]] <- df_seqs[["end"]] - df_seqs[["start"]]
+
+# df_tblastx2 <- df_tblastx %>% 
+  # dplyr::rename(start2 = end2, end2 = start2)
+
+p <- gggenomes(seqs = df_seqs, genes = df_genes, links = df_tblastx) +
+  geom_seq(size=1) +
+  geom_bin_label() +
+  geom_gene(aes(fill = hit), size=3, show.legend = F ) +
+  scale_fill_manual(values = c("#ffffbf", "#fc8d59")) +
+  ggnewscale::new_scale("fill") +
+  geom_link(aes(fill = pident), color="white", alpha=0.95, offset = 0.06) +
+  # fill color gradient from white to red
+  scale_fill_gradient(low = "white", high = "#91bfdb") +
+  geom_gene_label(aes(label = product), nudge_y = 0.08, angle = 20, size = 2.5, check_overlap = T) +
+  # gggenomes::flip(2) +
+  # change legend title to "identity (%)"
+  labs(fill = "identity (%)")
+
+ggsave(fout_BAM6, p, width = 20, height = 4, limitsize = F)
+p
+```
+
+### BCoAT genome comparison visualization using `Easyfig`
+
+**Updated: 2022-12-16**
+
+Two Viral BCoAT protein sequences were searched against NCBI NR database. The top protein hit in bacterial reference genome was selected as the best target, and the bacterial genome was compared with viral genome as show below.
+
+#### BCoAT in viral contig BAF3_V\_\_NODE_17
+
+Bacterial `Pseudoflavonifractor sp. AF19-9AC` contains BCoAT that most similar to viral contig `BAF3_V__NODE_17` encoded BCoAT gene, so we compared BCoAT region of their genomes, as show below. BCoAT gene was colored in red, and was connected with lines according to identity by BLASTn alignment. The high identity in BCoAT gene and no identity in surrounding genes indicate the viral-encoded BCoAT gene was from bacterial genome. Upper part is bacterial genome, and lower part is viral contig.
+
+![Figure 1. BCoAT in Pseudoflavonifractor sp. AF19-9AC and BAF3_V\_\_NODE_17](data/00-raw/34-BCoAT/BAF3.svg)
+
+#### BCoAT in viral contig BAM6_V\_\_NODE_3
+
+Bacterial `Lawsonibacter sp. OA9` contains BCoAT that most similar to viral contig `BAM6_V__NODE_3` encoded BCoAT gene, so we compared BCoAT region of their genomes, as show below. BCoAT gene was colored in red, and was connected with lines according to identity by BLASTn alignment. The high identity in BCoAT gene and no identity in surrounding genes indicate the viral-encoded BCoAT gene was from bacterial genome. Upper part is bacterial genome, and lower part is viral contig.
+
+![Figure 2. BCoAT in Lawsonibacter sp. OA9 and BAM6_V\_\_NODE_3](data/00-raw/34-BCoAT/BAM6.svg)
+
+
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

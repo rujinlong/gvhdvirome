@@ -11,12 +11,9 @@ data*/
 figs
 analyses/*.html
 .ipynb_checkpoints
-apps/GvHD/rsconnect/*
+apps/rsconnect/*
 hpc
 workflow/*
 !workflow/*md
-!workflow/*ipynb
-<<<<<<< Updated upstream
-!workflow/*.html
 pyenv
 /.luarc.json

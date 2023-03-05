@@ -1,0 +1,106 @@
+---
+title: "51-others"
+title-block-banner: true
+author:
+  - name: Jinling Xue
+    orcid: 0000-0002-8191-4140
+toc: true
+code-fold: true
+format: 
+  html:
+    embed-resources: true
+    smooth-scroll: true
+bibliography: refs.bib
+params:
+  name: "51-others"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "821d737e-9558-4e23-9917-caf26a988005")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+library(here)
+library(tidyverse)
+library(ggrepel)
+library(data.table)
+library(gvhdvirome)
+library(vpfkit)
+```
+
+## Tasks
+
+The first task is ...
+
+### VC abundance of three genomes
+
+**Updated: 2023-01-30**
+
+```{r}
+fin_vc2 <- here(path_data, "genome_by_genome_overview.csv")
+fin_ab_covfrac <- here(path_data, "abundance_contigs_covered_fraction.tsv")
+fin_ab_count <- here(path_data, "abundance_contigs_count.tsv")
+fin_ab_tpm <- here(path_data, "abundance_contigs_tpm.tsv")
+fout_tpm_rel <- path_target("tpm_3genomes_relab.xlsx")
+mincov <- 0.1
+
+vc2 <- read_vcontact2(fin_vc2, assembler_label = "__")
+dfab_count <- read_coverm(fin_ab_count)
+dfab_covfrac <- read_coverm(fin_ab_covfrac)
+
+df_ctg2vc <- vc2$vc_tbl %>% 
+  dplyr::mutate(genome_id = virsorter2_contig_id) %>% 
+  dplyr::select(c("genome_id", "vConTACT_VC2"))
+
+dfab_tpm <- read_coverm(fin_ab_tpm) %>% 
+  left_join(df_ctg2vc, by = "genome_id") %>%
+  dplyr::mutate(genome_id = ifelse(is.na(vConTACT_VC2), genome_id, vConTACT_VC2)) %>%
+  dplyr::select(-vConTACT_VC2) %>%
+  dplyr::group_by(genome_id) %>%
+  dplyr::summarise_all(sum) %>% 
+  column_to_rownames("genome_id") %>% 
+  as.matrix()
+
+dfab_covfrac <- read_coverm(fin_ab_covfrac, "cov") %>% 
+  left_join(df_ctg2vc, by = "genome_id") %>% 
+  dplyr::mutate(genome_id = ifelse(is.na(vConTACT_VC2), genome_id, vConTACT_VC2)) %>%
+  dplyr::select(-vConTACT_VC2) %>% 
+  dplyr::group_by(genome_id) %>% 
+  dplyr::summarise_all(max) %>% 
+  column_to_rownames("genome_id") %>% 
+  mutate_at(vars(everything()), ~ ifelse(. < mincov, 0, 1)) %>%
+  as.matrix()
+
+df_tpm_normby_covfrac <- dfab_covfrac[rownames(dfab_tpm), colnames(dfab_tpm)] * dfab_tpm %>%
+  as.data.frame() %>% 
+  dplyr::mutate(across(everything(), replace_na, 0)) %>% 
+  dplyr::mutate_at(vars(everything()), ~ . / sum(.) * 100) %>%
+  dplyr::mutate_at(vars(everything()), ~ round(., 8))
+
+rst <- df_tpm_normby_covfrac %>% 
+  rownames_to_column("genome_id") %>% 
+  dplyr::filter(genome_id %in% c("27_1", "62_0", "BAC3_V__5269"))
+
+openxlsx::write.xlsx(rst, file = fout_tpm_rel)
+```
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

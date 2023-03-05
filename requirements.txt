@@ -16,6 +16,7 @@ cycler==0.11.0
 debugpy==1.6.6
 decorator==5.1.1
 defusedxml==0.7.1
+et-xmlfile==1.1.0
 executing==1.2.0
 fastjsonschema==2.16.3
 fonttools==4.38.0
@@ -48,6 +49,7 @@ nest-asyncio==1.5.6
 notebook==6.5.2
 notebook_shim==0.2.2
 numpy==1.24.2
+openpyxl==3.1.1
 packaging==23.0
 pandas==1.5.3
 pandocfilters==1.5.0
@@ -61,10 +63,12 @@ prompt-toolkit==3.0.38
 psutil==5.9.4
 ptyprocess==0.7.0
 pure-eval==0.2.2
+pycircos==1.0.2
 pycparser==2.21
 Pygments==2.14.0
 pyparsing==3.0.9
 pyrsistent==0.19.3
+python-circos @ git+https://github.com/ponnhide/pyCircos.git@8b09cc951fa36f31496f54a9a7654ff99351fc97
 python-dateutil==2.8.2
 python-json-logger==2.0.7
 pytz==2022.7.1
