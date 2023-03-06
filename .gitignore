@@ -15,4 +15,6 @@ hpc
 workflow/*
 !workflow/*md
 pyenv
+!workflow/pyscript
+__pycache__*
 /.luarc.json
