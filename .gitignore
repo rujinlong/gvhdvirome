@@ -6,8 +6,7 @@ renv/*
 !renv/activate.R
 tmp
 report
-data*/
-!apps/GvHD/data
+apps/data
 figs
 analyses/*.html
 .ipynb_checkpoints
