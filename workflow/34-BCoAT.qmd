@@ -51,7 +51,7 @@ library(gvhdvirome)
 
 ```{r}
 #| warning: false
-data("bcoat", package = "p0064gvhd")
+data("bcoat", package = "gvhdvirome")
 tree <- bcoat$tree
 df_anno <- bcoat$anno
 
