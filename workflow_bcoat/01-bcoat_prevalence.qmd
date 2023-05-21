@@ -1,0 +1,49 @@
+---
+title: "01-bcoat_prevalence"
+title-block-banner: true
+author:
+  - name: xxx
+    orcid: xxx
+toc: true
+format: gfm
+bibliography: refs.bib
+params:
+  name: "01-bcoat_prevalence"
+---
+
+Updated: `r format(Sys.time(), '%Y-%m-%d %H:%M:%S', tz = 'CET')` CET.
+
+
+```{r setup}
+#| message: false
+#| include: false
+here::i_am(paste0(params$name, ".qmd"), uuid = "867f4093-92ab-40c7-a31f-e00c309fcc28")
+projthis::proj_create_dir_target(params$name, clean = FALSE)
+path_target <- projthis::proj_path_target(params$name)
+path_source <- projthis::proj_path_source(params$name)
+path_data <- path_source("00-raw", params$name)
+dir.create(path_data, recursive = T)
+```
+
+The purpose of this document is ...
+
+```{r packages}
+library(here)
+```
+
+## Tasks
+
+The first task is ...
+
+```{r}
+
+```
+
+
+## Files written
+
+These files have been written to the target directory, ```r paste0("data/", params$name)```:
+
+```{r list-files-target}
+projthis::proj_dir_info(path_target())
+```

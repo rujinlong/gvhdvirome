@@ -17,3 +17,5 @@ workflow/*
 pyenv
 !workflow/pyscript/*.py
 /.luarc.json
+workflow_bcoat/data
+pyscript/__pycache__
