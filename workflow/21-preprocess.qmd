@@ -50,8 +50,6 @@ The first task is ...
 ### Create phyloseq objects
 
 ```{r}
-
-
 dis_stat_vir <- c("Pre-Tx", "d0", "d7", "d14", "d28", "aGvHD")
 dis_stat_16s <- c("Pre-Tx", "d0", "d7", "d14", "d28", "aGvHD", "Follow Up")
 dis_stat_18s <- c("Pre-TX", "d0", "d7", "d14", "d28", "aGvHD", "Follow_up")
@@ -142,6 +140,7 @@ save(pseq_vir, file=here("data/processed/pseq_vir.RData"))
 fin_ra <- here(path_data, "virome-RA.xlsx")
 fout_patient <- path_target("virome_RA_mergeby_patient.xlsx")
 fout_antibiotics <- path_target("virome_RA_mergeby_antibiotics.xlsx")
+
 fin_af <- here(path_data, "virome-AF.xlsx")
 fout_af <- path_target("virome_RA_mergeby_antifungal.xlsx")
 ```
