@@ -16,13 +16,9 @@ Imports:
     ggplot2,
     ggplotify,
     ggrepel,
-    ggtree,
-    ggtreeExtra,
     magrittr,
     stringr,
-    tibble,
-    tidytree,
-    treeio
+    tibble
 RoxygenNote: 7.2.3
 Depends: 
     R (>= 2.10)

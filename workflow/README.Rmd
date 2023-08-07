@@ -10,6 +10,3 @@ here::i_am("README.Rmd", uuid = "0ca589d6-4f28-4b39-86d7-65e29426295b")
 # function to get path to previous data: path_source("99-publish", "sample.csv")
 path_source <- projthis::proj_path_source("README")
 ```
-
-In this workflow, ...
-

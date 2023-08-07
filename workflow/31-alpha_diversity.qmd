@@ -337,8 +337,9 @@ dev.off()
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Alpha Diversity/Dotsplot-Alpha.R`
 
 ```{r}
+set.seed(42)
 fin_time <- here(path_data, "Alpha_TIME_Final.txt")
-fout_time <- path_target("Alpha-InvSimpson-Timenew.png")
+fout_time <- path_target("Alpha-InvSimpson-Timenew.svg")
 
 otu <- read.delim(fin_time, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
 
@@ -347,16 +348,17 @@ otu$Timepoints<-factor(otu$Timepoints,levels = c("Day -7","Day 0","Day +7","Day 
 otu <- otu %>%
   mutate(timepoints2=str_replace(Timepoints, "^.*Day ", "")) %>%
   mutate(timepoints2 = as.integer(timepoints2)) %>%
-  mutate(timepoints3 = as.character(timepoints2))
+  mutate(timepoints3 = as.character(timepoints2)) %>% 
+  mutate(timepoints_show = str_replace(Timepoints, "^.*Day", "d"))
 unique(otu$timepoints2)
 p0 <- ggplot(otu,aes(x=timepoints2,y=InvSimpson))+
   #geom_point(aes(color=Center))+
-  geom_point(position=position_jitter(h=2, w=2),alpha = 0.5, size = 1)+
+  geom_point(position=position_jitter(h=2, w=2),alpha = 0.2, size = 1)+
   geom_smooth(aes(color=Center))+
   geom_smooth(color="black")+
   scale_x_continuous(breaks= otu$timepoints2,
-                   labels=otu$Timepoints)+
-  theme_bw()+
+                   labels=otu$timepoints_show)+
+  theme_classic()+
   theme(legend.position = "right",panel.grid.major = element_blank(),panel.grid.minor = element_blank())
 p0
 p1<-p0+color_palette(c("#FFB562", "#F87474"))+labs( y = "Inverse Simpson",x="")
@@ -365,10 +367,29 @@ p2<-p1+
   theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45, vjust = 0.3,hjust = 0.5),axis.text.y=element_text(family="Arial",colour="black"))
 p2
 p3<- ggpar(p2, ylim = c(0, 30))
-png(file = fout_time, width =1200,height = 800,units = "px",res =300) 
-print(p3)
-dev.off()
+ggsave(fout_time, p3, width = 1200, height = 800, units = "px")
+p3
 
+
+# Richness
+p0 <- ggplot(otu,aes(x=timepoints2,y=Richness))+
+  #geom_point(aes(color=Center))+
+  geom_point(position=position_jitter(h=2, w=2),alpha = 0.2, size = 1)+
+  geom_smooth(aes(color=Center))+
+  geom_smooth(color="black")+
+  scale_x_continuous(breaks= otu$timepoints2,
+                   labels=otu$timepoints_show)+
+  theme_classic()+
+  theme(legend.position = "right",panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+p0
+p1<-p0+color_palette(c("#FFB562", "#F87474"))+labs( y = "Richness",x="")
+p1
+p2<-p1+
+  theme(axis.text.x=element_text(family="Arial",colour="black",angle = 45, vjust = 0.3,hjust = 0.5),axis.text.y=element_text(family="Arial",colour="black"))
+p2
+p3<- ggpar(p2, ylim = c(0, 4000))
+ggsave(path_target("Alpha-Richness-Timenew.svg"), p3, width = 1200, height = 800, units = "px")
+p3
 ```
 
 
@@ -407,10 +428,6 @@ p3
 png(file = fout_inv, width =1800,height = 1400,units = "px",res =300) 
 dev.off()
 ```
-
-
-
-
 
 ## Files written
 
