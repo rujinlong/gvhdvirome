@@ -103,7 +103,7 @@ def plot_circos(record, df_cds_anno, label):
     return gcircle
 
 
-def main_plot(fgbk, dirout, bcoat_locus_tag, fin_phrog, label="VC-1"):
+def main_plot(fgbk, dirout, bcoat_locus_tag, fin_phrog, label="VC-1", fmt="pdf"):
     record = get_gbk(fgbk)
     df_cds = get_cds(record)
     df_phrog = read_phrog_annot(fin_phrog)
@@ -118,5 +118,5 @@ def main_plot(fgbk, dirout, bcoat_locus_tag, fin_phrog, label="VC-1"):
     fig1 = plot_circos(record, df_cds_anno, label)
     # fig1.save("circ_BAM3.pdf", format="pdf")
     fout = os.path.join(dirout, label)
-    fig1.save(fout, format="pdf")
+    fig1.save(fout, format=fmt)
     return fig1

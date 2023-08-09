@@ -49,6 +49,7 @@ code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Heatmap-vOTU/PHeatma
 fin11 <- here(path_data, '2groups_TPM_new.txt')
 fin12 <- here(path_data, 'Group-new.txt')
 fout11 <- path_target("Heatmap-2groups-TPM-new.png")
+fout11_svg <- path_target("Heatmap-2groups-TPM-new.svg")
 
 Family<-read.delim(fin11, header=T,row.names=1,check.names=F)
 
@@ -64,26 +65,29 @@ annot_data1 <- data.frame(row.names = colnames(Family),
 
 
 # Specify colors 
-ann_colors = list(Day = c("d -7" = "#3F7F02", 
-                          "d 0" = "#FDCC65",
-                          "d +7" ="#FC8008",
-                          "d +14" ="#FC6665",
-                          "d +21" ="#FB0106",
-                          "d +28" ="#FB027F"))
+ann_colors = list(Day = c("d -7" = "#edf8fb", 
+                          "d 0" = "#bfd3e6",
+                          "d +7" ="#9ebcda",
+                          "d +14" ="#8c96c6",
+                          "d +21" ="#8856a7",
+                          "d +28" ="#810f7c"))
 names(ann_colors$Day) = annot_data1$Day
 
-pheatmap(mat=log10(Family+1),
+my_pheatmap <- pheatmap(mat=log10(Family+1),
              cluster_col = F,cluster_rows = T,
              border=FALSE,cellheight = 36, cellwidth =18,
              show_rownames = T, show_colnames = F,
              fontsize = 8,
              fontfamily = "Arial",
              annotation_col = annot_data1,
-             filename = fout11,
+             # filename = fout11_svg,
              width = 4.5,
              height = 2,
              annotation_colors = ann_colors,
-             )
+             )[[4]]
+
+my_plot <- gridExtra::grid.arrange(my_pheatmap, nrow=1, ncol=1)
+ggsave(filename=fout11_svg, plot=my_plot)
 ```
 
 ### PHeatmap-Species.R

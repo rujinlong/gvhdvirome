@@ -39,8 +39,8 @@ library(tidyverse)
 library(data.table)
 library(treedataverse)
 library(pals)
-library(gggenomes)
-library(gvhdvirome)
+# library(gggenomes)
+devtools::load_all()
 ```
 
 ## Tasks
@@ -192,8 +192,9 @@ fin_phrog = os.path.join(r.path_data, "phrog_annot_v4.tsv")
 fin_BAF3 = os.path.join(r.path_data, "BAF3/BAF3.gbk")
 fin_BAM6 = os.path.join(r.path_data, "BAM6/BAM6.gbk")
 
-psc.main_plot(fin_BAF3, r.path_target(), "BAF3_00080", fin_phrog, label="VC-1")
-psc.main_plot(fin_BAM6, r.path_target(), "BAM6_00020", fin_phrog, label="VC-2")
+pvc1 = psc.main_plot(fin_BAF3, r.path_target(), "BAF3_00080", fin_phrog, label="VC-1", fmt="svg")
+pvc2 = psc.main_plot(fin_BAM6, r.path_target(), "BAM6_00020", fin_phrog, label="VC-2", fmt="svg")
+pvc1.save(os.path.join(r.path_taret(), "pvc1.svg"))
 
 # plot legend
 df_phrog = psc.read_phrog_annot(fin_phrog)
