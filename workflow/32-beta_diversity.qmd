@@ -48,95 +48,117 @@ code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/
 
 ```{r}
 set.seed(42)
-fin11 <- here(path_data, 'virome-RA-Time.txt')
-fin12 <- here(path_data, 'grouping-Time.txt')
-fout11 <- path_target('Time-distance.csv')
-fout12 <- path_target('pcoa.virome-time.csv')
-fout13 <- path_target('pcoa.otu.time.csv')
-fout14 <- path_target('V.Time.sample-group.csv')
+fin11 <- here(path_data, "virome-RA-Time.txt")
+fin12 <- here(path_data, "grouping-Time.txt")
+fout11 <- path_target("Time-distance.csv")
+fout12 <- path_target("pcoa.virome-time.csv")
+fout13 <- path_target("pcoa.otu.time.csv")
+fout14 <- path_target("V.Time.sample-group.csv")
 fout15 <- path_target("PCOA_TIME_TRY123_NEW.png")
 fout15_svg <- path_target("PCOA_TIME_TRY123_NEW.svg")
 
-otu <- read.delim(fin11, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin11, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin12, sep = '\t', stringsAsFactors = FALSE)
-distance <- vegdist(otu, method = 'bray')
+group <- read.delim(fin12, sep = "\t", stringsAsFactors = FALSE)
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout11, quote = F)
 
-ordiplot(scores(pcoa)[ ,c(1, 2)], type = 't')
+ordiplot(scores(pcoa)[, c(1, 2)], type = "t")
 point <- data.frame(pcoa$point)
 write.csv(point, fout12)
-species <- wascores(pcoa$points[,1:2], otu)
+species <- wascores(pcoa$points[, 1:2], otu)
 write.csv(species, fout13)
 pcoa_eig <- (pcoa$eig)[1:2] / sum(pcoa$eig)
-sample_group <- data.frame({pcoa$point})[1:2]
+sample_group <- data.frame({
+    pcoa$point
+})[1:2]
 sample_group$names <- rownames(sample_group)
-names(sample_group)[1:2] <- c('PCoA1', 'PCoA2')
-sample_group <- merge(sample_group, group, by = 'names', all.x = TRUE)
+names(sample_group)[1:2] <- c("PCoA1", "PCoA2")
+sample_group <- merge(sample_group, group, by = "names", all.x = TRUE)
 write.csv(sample_group, fout14, quote = F, row.names = F)
 
-#modify(sample_group)
+# modify(sample_group)
 pcoa <- data.table::fread(fout14) %>% 
-  dplyr::mutate(group=str_replace(group, "Day", "d")) %>%
-  dplyr::mutate(PCoA2 = PCoA2 * -1)  # PcoA2 axis flipped due to package or R version. To make the figure consistant, we flip it back
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 18,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
+    dplyr::mutate(group = str_replace(group, "Day", "d")) %>%
+    dplyr::mutate(PCoA2 = PCoA2 * -1) # PcoA2 axis flipped due to package or R version. To make the figure consistant, we flip it back
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 18, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 
-pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group))+
-  geom_point()+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("PCoA1 ",5.05,"%"),
-       y=paste0("PCoA2 ",4.66,"%"))
+pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group)) +
+    geom_point() +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("PCoA1 ", 5.05, "%"),
+        y = paste0("PCoA2 ", 4.66, "%")
+    )
 
 pcoa_plot
 
-P1<-ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group))+
-  geom_point(size=1)+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("Axis1 ",5.0,"%"),
-       y=paste0("Axis2 ",4.6,"%"))+
-  geom_point()+scale_color_manual(values =c("d -7"="#edf8fb","d 0"="#bfd3e6", "d +7"="#9ebcda","d +14"="#8c96c6","d +21"="#8856a7","d +28"="#810f7c"))+
-  geom_segment(data=NULL,aes(x=0,y=0,xend=PCoA1,yend=PCoA2),linetype = "dotted",arrow =NULL, size = 0.5) +
-  scale_fill_discrete(breaks=c("d -7","d 0","d +7","d +14","d +21","d +28"))+
-  stat_ellipse(aes(color = group),level=0.4,linetype = 2,fill=group)+theme(legend.position="none")
+P1 <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group)) +
+    geom_point(size=2.5, shape=21, color="black") +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("Axis1 ", 5.0, "%"),
+        y = paste0("Axis2 ", 4.6, "%")
+    ) +
+    geom_point(size=2) +
+    scale_color_manual(values = c("d -7" = "#edf8fb", "d 0" = "#bfd3e6", "d +7" = "#9ebcda", "d +14" = "#8c96c6", "d +21" = "#8856a7", "d +28" = "#810f7c")) +
+    # scale_color_manual(values = c("d -7" = "black", "d 0" = "black", "d +7" = "black", "d +14" = "black", "d +21" = "black", "d +28" = "black")) +
+    # geom_point(color="black",size=4, shape=21) +
+  # scale_fill_manual(values = "black") +
+    geom_segment(data = NULL, aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), linetype = "dotted", arrow = NULL, size = 0.5) +
+    scale_fill_discrete(breaks = c("d -7", "d 0", "d +7", "d +14", "d +21", "d +28")) +
+    stat_ellipse(aes(color = group), level = 0.4, linetype = 2, fill = group) +
+    theme(legend.position = "none")
 P1
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 12,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()) 
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    # add legend.key border line
+    legend.key = element_rect(color = "black", size = 0.1),
+    # legend.background=element_blank(),
+    # legend.key=element_blank(),
+    legend.text = element_text(colour = "black", size = 12, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 
 p2 = P1 + plot.theme
 p2
-ggsave(fout15_svg, p2, width =1600,height = 1200,units = "px" )
+ggsave(fout15_svg, p2, width = 1600, height = 1200, units = "px")
+
+
+# guide = guide_legend(direction = "vertical",
+#                                          override.aes = list(colour = "darkgreen"), 
+#                                          ncol = 3))
 ```
 
 
@@ -148,68 +170,78 @@ ggsave(fout15_svg, p2, width =1600,height = 1200,units = "px" )
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PCOA_ABX_TRY_2.R`
 
 ```{r}
-fin21 <- here(path_data, 'virome_ABX_patient.txt')
-fin22 <- here(path_data, 'group_ABX_patient.txt')
-fout21 <- path_target('ABX_patient_distance.csv')
+fin21 <- here(path_data, "virome_ABX_patient.txt")
+fin22 <- here(path_data, "group_ABX_patient.txt")
+fout21 <- path_target("ABX_patient_distance.csv")
 fout22 <- path_target("PCOA_ABX_patient_NEW.png")
 fout22_svg <- path_target("PCOA_ABX_patient_NEW.svg")
 
-otu <- read.delim(fin21, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin21, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin22, sep = '\t', stringsAsFactors = FALSE)
-distance <- vegdist(otu, method = 'bray')
+group <- read.delim(fin22, sep = "\t", stringsAsFactors = FALSE)
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout21, quote = F)
 
-df.pcoa<-pcoa(distance,correction = "cailliez")
-df.plot<-data.frame(df.pcoa$vectors) %>% 
-  dplyr::mutate(Axis.1 = Axis.1 * -1)  # PcoA1 axis flipped due to package or R version. To make the figure consistant, we flip it back
+df.pcoa <- pcoa(distance, correction = "cailliez")
+df.plot <- data.frame(df.pcoa$vectors)
+# dplyr::mutate(Axis.1 = Axis.1 * -1)  # PcoA1 axis flipped due to package or R version. To make the figure consistant, we flip it back
 
-x_label<-round(df.pcoa$values$Rel_corr_eig[1]*100,2)
-y_label<-round(df.pcoa$values$Rel_corr_eig[2]*100,2)
+x_label <- round(df.pcoa$values$Rel_corr_eig[1] * 100, 2)
+y_label <- round(df.pcoa$values$Rel_corr_eig[2] * 100, 2)
 
-ggplot(data=df.plot,aes(x=Axis.1,y=Axis.2))+
-  geom_point()+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("Axis1 ",x_label,"%"),
-       y=paste0("Axis2 ",y_label,"%"))
-df.plot$group<-ifelse(df.plot$Axis.1<0,"No ABX","ABX")
+ggplot(data = df.plot, aes(x = Axis.1, y = Axis.2)) +
+    geom_point() +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("Axis1 ", x_label, "%"),
+        y = paste0("Axis2 ", y_label, "%")
+    )
+df.plot$group <- ifelse(df.plot$Axis.1 < 0, "No ABX", "ABX")
 
-pcoa_plot<-ggplot(data=df.plot,aes(x=Axis.1,y=Axis.2,
-                        color=group,shape=group))+
-  geom_point(size=1)+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("Axis1 ",x_label,"%"),
-       y=paste0("Axis2 ",y_label,"%"))+
-  stat_ellipse(aes(colour = group, fill=group),linetype = 2, level=0.2, geom = "polygon", alpha=0.5)+
-  geom_point()+scale_color_manual(values =c("No ABX"="#0F7FFE","ABX"="#FB0106"))+
-  geom_segment(data=NULL,aes(x=0,y=0,xend=Axis.1,yend=Axis.2),linetype = "dotted",arrow =NULL, size = 0.5) +
-  scale_fill_discrete(breaks=c("No ABX","ABX"))+theme(legend.position="none")
+pcoa_plot <- ggplot(data = df.plot, aes(
+    x = Axis.1, y = Axis.2,
+    color = group, shape = group
+)) +
+    geom_point(size = 1) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("Axis1 ", x_label, "%"),
+        y = paste0("Axis2 ", y_label, "%")
+    ) +
+    stat_ellipse(aes(colour = group, fill = group), linetype = 2, level = 0.2, geom = "polygon", alpha = 0.5) +
+    geom_point() +
+    scale_color_manual(values = c("No ABX" = "#0F7FFE", "ABX" = "#FB0106")) +
+    geom_segment(data = NULL, aes(x = 0, y = 0, xend = Axis.1, yend = Axis.2), linetype = "dotted", arrow = NULL, size = 0.5) +
+    scale_fill_discrete(breaks = c("No ABX", "ABX")) +
+    theme(legend.position = "none")
 
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="none",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 18,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "none",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 18, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 p1 = pcoa_plot + plot.theme
 p1
-ggsave(fout22_svg, p1, width =1600,height = 1200,units = "px" )
+ggsave(fout22_svg, p1, width = 1600, height = 1200, units = "px")
 ```
 
 
@@ -222,65 +254,75 @@ ggsave(fout22_svg, p1, width =1600,height = 1200,units = "px" )
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PCOA_CTRL_TRY1.R`
 
 ```{r}
-fin31 <- here(path_data, 'virome_GVHD_patient.txt')
-fin32 <- here(path_data, 'group_GVHD_patient.txt')
-fout31 <- path_target('GVHD_patient_distance.csv')
+fin31 <- here(path_data, "virome_GVHD_patient.txt")
+fin32 <- here(path_data, "group_GVHD_patient.txt")
+fout31 <- path_target("GVHD_patient_distance.csv")
 fout32 <- path_target("PCOA_GVHD_patient_NEW.png")
 fout32_svg <- path_target("PCOA_GVHD_patient_NEW.svg")
 
-otu <- read.delim(fin31, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin31, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin32, sep = '\t', stringsAsFactors = FALSE)
-distance <- vegdist(otu, method = 'bray')
+group <- read.delim(fin32, sep = "\t", stringsAsFactors = FALSE)
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout31, quote = F)
 
-df.pcoa<-pcoa(distance,correction = "cailliez")
-df.plot<-data.frame(df.pcoa$vectors)
-x_label<-round(df.pcoa$values$Rel_corr_eig[1]*100,2)
-y_label<-round(df.pcoa$values$Rel_corr_eig[2]*100,2)
-ggplot(data=df.plot,aes(x=Axis.1,y=Axis.2))+
-  geom_point()+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("PCoA1 ",7.84,"%"),
-       y=paste0("PCoA2 ",6.76,"%"))
-df.plot$group<-ifelse(df.plot$Axis.1<0,"No GI-GvHD","GI-GvHD")
+df.pcoa <- pcoa(distance, correction = "cailliez")
+df.plot <- data.frame(df.pcoa$vectors)
+x_label <- round(df.pcoa$values$Rel_corr_eig[1] * 100, 2)
+y_label <- round(df.pcoa$values$Rel_corr_eig[2] * 100, 2)
+ggplot(data = df.plot, aes(x = Axis.1, y = Axis.2)) +
+    geom_point() +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("PCoA1 ", 7.84, "%"),
+        y = paste0("PCoA2 ", 6.76, "%")
+    )
+df.plot$group <- ifelse(df.plot$Axis.1 < 0, "No GI-GvHD", "GI-GvHD")
 
-pcoa_plot<-ggplot(data=df.plot,aes(x=Axis.1,y=Axis.2,
-                                   color=group,shape=group))+
-  geom_point(size=1)+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("Axis1 ",7.84,"%"),
-       y=paste0("Axis2 ",6.76,"%"))+
-  stat_ellipse(aes(colour = group, fill=group),linetype = 2, level=0.2, alpha=0.5)+
-  geom_point()+scale_color_manual(values =c("No GI-GvHD"="#0F7FFE","GI-GvHD"="#FB0106"))+
-  geom_segment(data=NULL,aes(x=0,y=0,xend=Axis.1,yend=Axis.2),linetype = "dotted",arrow =NULL, size = 0.5) +
-  scale_fill_discrete(breaks=c("No GI-GvHD","GI-GvHD"))+theme(legend.position="none")
+pcoa_plot <- ggplot(data = df.plot, aes(
+    x = Axis.1, y = Axis.2,
+    color = group, shape = group
+)) +
+    geom_point(size = 1) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("Axis1 ", 7.84, "%"),
+        y = paste0("Axis2 ", 6.76, "%")
+    ) +
+    stat_ellipse(aes(colour = group, fill = group), linetype = 2, level = 0.2, alpha = 0.5) +
+    geom_point() +
+    scale_color_manual(values = c("No GI-GvHD" = "#0F7FFE", "GI-GvHD" = "#FB0106")) +
+    geom_segment(data = NULL, aes(x = 0, y = 0, xend = Axis.1, yend = Axis.2), linetype = "dotted", arrow = NULL, size = 0.5) +
+    scale_fill_discrete(breaks = c("No GI-GvHD", "GI-GvHD")) +
+    theme(legend.position = "none")
 
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="none",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 18,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "none",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 18, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 p1 = pcoa_plot + plot.theme
 p1
-ggsave(fout32_svg, p1, width =1600,height = 1200,units = "px" )
+ggsave(fout32_svg, p1, width = 1600, height = 1200, units = "px")
 ```
 
 
@@ -289,86 +331,94 @@ ggsave(fout32_svg, p1, width =1600,height = 1200,units = "px" )
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PCOA_GVHD_PATIENT.R`
 
 ```{r}
-fin71 <- here(path_data, 'virome_GVHD_patient.txt')
-fin72 <- here(path_data, 'group_GVHD_patient.txt')
-fin73 <- here(path_data, 'V.GVHD.PATIENT.txt')
-fout71 <- path_target('GVHD-distance.csv')
-fout72 <- path_target('pcoa.virome-G-patient.point.csv')
-fout73 <- path_target('pcoa.otu.G.patient.species.csv')
-fout74 <- path_target('V.GVHD.PATIENT.csv')
+fin71 <- here(path_data, "virome_GVHD_patient.txt")
+fin72 <- here(path_data, "group_GVHD_patient.txt")
+fin73 <- here(path_data, "V.GVHD.PATIENT.txt")
+fout71 <- path_target("GVHD-distance.csv")
+fout72 <- path_target("pcoa.virome-G-patient.point.csv")
+fout73 <- path_target("pcoa.otu.G.patient.species.csv")
+fout74 <- path_target("V.GVHD.PATIENT.csv")
 fout75 <- path_target("PCOA_GVHD_Patient_NEW1.png")
 
-otu <- read.delim(fin71, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin71, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin72, sep = '\t', stringsAsFactors = FALSE)
+group <- read.delim(fin72, sep = "\t", stringsAsFactors = FALSE)
 library(vegan)
-distance <- vegdist(otu, method = 'bray')
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout71, quote = F)
 
-ordiplot(scores(pcoa)[ ,c(1, 2)], type = 't')
+ordiplot(scores(pcoa)[, c(1, 2)], type = "t")
 
 point <- data.frame(pcoa$point)
 write.csv(point, fout72)
-species <- wascores(pcoa$points[,1:2], otu)
+species <- wascores(pcoa$points[, 1:2], otu)
 write.csv(species, fout73)
 pcoa_eig <- (pcoa$eig)[1:2] / sum(pcoa$eig)
-sample_group <- data.frame({pcoa$point})[1:2]
+sample_group <- data.frame({
+    pcoa$point
+})[1:2]
 sample_group$names <- rownames(sample_group)
-names(sample_group)[1:2] <- c('PCoA1', 'PCoA2')
-sample_group <- merge(sample_group, group, by = 'names', all.x = TRUE)
+names(sample_group)[1:2] <- c("PCoA1", "PCoA2")
+sample_group <- merge(sample_group, group, by = "names", all.x = TRUE)
 write.csv(sample_group, fout74, quote = F)
 
-#modify(sample_group)
+# modify(sample_group)
 pcoa <- read.delim(fin73, stringsAsFactors = F)
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 18,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 18, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 
-P0<-pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = Group, color = Group))+
-  geom_point(size=1)+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_vline(xintercept = 0,lty="dashed")+
-  geom_hline(yintercept = 0,lty="dashed")+
-  labs(x=paste0("PCoA1 ",7.84,"%"),
-       y=paste0("PCoA2 ",6.76,"%"))
+P0 <- pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = Group, color = Group)) +
+    geom_point(size = 1) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = 0, lty = "dashed") +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    labs(
+        x = paste0("PCoA1 ", 7.84, "%"),
+        y = paste0("PCoA2 ", 6.76, "%")
+    )
 P0
-P1<-P0+
-  scale_color_manual(values =c("No GI-GVHD"="#0F7FFE","GI-GVHD"="#FB0106"))+
-  geom_segment(data=NULL,aes(x=0,y=0,xend=PCoA1,yend=PCoA2),linetype = "dotted",arrow =NULL, size = 0.5) +
-  scale_fill_discrete(breaks=c("No GI-GVHD","GI-GVHD"))+
-  stat_ellipse(aes(colour = Group, fill=Group),linetype = 2, level=0.2, geom = "polygon", alpha=0.5)
+P1 <- P0 +
+    scale_color_manual(values = c("No GI-GVHD" = "#0F7FFE", "GI-GVHD" = "#FB0106")) +
+    geom_segment(data = NULL, aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), linetype = "dotted", arrow = NULL, size = 0.5) +
+    scale_fill_discrete(breaks = c("No GI-GVHD", "GI-GVHD")) +
+    stat_ellipse(aes(colour = Group, fill = Group), linetype = 2, level = 0.2, geom = "polygon", alpha = 0.5)
 P1
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 12,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = .5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 12, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
 
 p2 = P1 + plot.theme
 p2
-ggsave(fout75_svg, p2, width =1600,height = 1200,units = "px" )
+ggsave(fout75_svg, p2, width = 1600, height = 1200, units = "px")
 ```
 
 
@@ -378,63 +428,68 @@ ggsave(fout75_svg, p2, width =1600,height = 1200,units = "px" )
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PCOA-AF.R`
 
 ```{r}
-fin61 <- here(path_data, 'virome_AF_patient.txt')
-fin62 <- here(path_data, 'group_AF_patient_2.txt')
-fin63 <- here(path_data, 'V.AF.patient.sample-group.txt')
-fout61 <- path_target('AF-patient-distance.csv')
-fout62 <- path_target('pcoa.virome-AF-patient.csv')
-fout63 <- path_target('pcoa.otu.AF.patient.csv')
-fout64 <- path_target('V.AF.patient.sample-group.csv')
+fin61 <- here(path_data, "virome_AF_patient.txt")
+fin62 <- here(path_data, "group_AF_patient_2.txt")
+fin63 <- here(path_data, "V.AF.patient.sample-group.txt")
+fout61 <- path_target("AF-patient-distance.csv")
+fout62 <- path_target("pcoa.virome-AF-patient.csv")
+fout63 <- path_target("pcoa.otu.AF.patient.csv")
+fout64 <- path_target("V.AF.patient.sample-group.csv")
 fout65 <- path_target("PCOA_AF_patient_2.png")
 
-otu <- read.delim(fin61, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
-group <- read.delim(fin62, sep = '\t', stringsAsFactors = FALSE)
-distance <- vegdist(otu, method = 'bray')
+otu <- read.delim(fin61, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
+group <- read.delim(fin62, sep = "\t", stringsAsFactors = FALSE)
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout61, quote = F)
 
-ordiplot(scores(pcoa)[ ,c(1, 2)], type = 't')
+ordiplot(scores(pcoa)[, c(1, 2)], type = "t")
 
 point <- data.frame(pcoa$point)
 write.csv(point, fout62)
-species <- wascores(pcoa$points[,1:2], otu)
+species <- wascores(pcoa$points[, 1:2], otu)
 write.csv(species, fout63)
 pcoa_eig <- (pcoa$eig)[1:2] / sum(pcoa$eig)
-sample_group <- data.frame({pcoa$point})[1:2]
+sample_group <- data.frame({
+    pcoa$point
+})[1:2]
 sample_group$names <- rownames(sample_group)
-names(sample_group)[1:2] <- c('PCoA1', 'PCoA2')
-sample_group <- merge(sample_group, group, by = 'names', all.x = TRUE)
+names(sample_group)[1:2] <- c("PCoA1", "PCoA2")
+sample_group <- merge(sample_group, group, by = "names", all.x = TRUE)
 write.csv(sample_group, fout64, quote = F)
 
-#modify(sample_group)
+# modify(sample_group)
 pcoa <- read.delim(fin63, stringsAsFactors = F)
 
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=0.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 18,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
-#stat_ellipse(level = 0.95, show.legend = F)(??Բ????????) 
-pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group))+
-  stat_ellipse(aes(colour = group),level=0.95,linetype = 2)+
-  geom_point()+scale_color_manual(values =c(" No Antifungals"="#FFB562","Antifungals"="#F9F2ED"))+
-  scale_fill_discrete(breaks=c("NO","YES"))
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = 0.5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 18, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
+# stat_ellipse(level = 0.95, show.legend = F)(??Բ????????) 
+pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group)) +
+    stat_ellipse(aes(colour = group), level = 0.95, linetype = 2) +
+    geom_point() +
+    scale_color_manual(values = c(" No Antifungals" = "#FFB562", "Antifungals" = "#F9F2ED")) +
+    scale_fill_discrete(breaks = c("NO", "YES"))
 
 p1 = pcoa_plot + plot.theme
 p1
-p2 = p1 + xlab(paste("Axis1=",5.78,"%",sep=""))+ylab(paste("Axis2=",5.24,"%",sep="")) 
+p2 = p1 + xlab(paste("Axis1=", 5.78, "%", sep = "")) + ylab(paste("Axis2=", 5.24, "%", sep = "")) 
 p2
-ggsave(fout65, p2, width =2400,height = 1200,units = "px" )
+ggsave(fout65, p2, width = 2400, height = 1200, units = "px")
 ```
 
 ### PERMANOVA_TEST.R
@@ -444,41 +499,41 @@ code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/
 ```{r}
 #| warning: false
 #| message: false
-fin51 <- here(path_data, 'virome-RA-Time.txt')
-fin52 <- here(path_data, 'grouping-Time.txt')
-fout51 <- path_target('PERMANOVA.result_Time.txt')
-fout52 <- path_target('PERMANOVA.result_Time_points.txt')
+fin51 <- here(path_data, "virome-RA-Time.txt")
+fin52 <- here(path_data, "grouping-Time.txt")
+fout51 <- path_target("PERMANOVA.result_Time.txt")
+fout52 <- path_target("PERMANOVA.result_Time_points.txt")
 
-otu <- read.delim(fin51, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin51, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin52, sep = '\t', stringsAsFactors = FALSE)
-adonis_result <- adonis(otu~group, group, distance = 'bray', permutations = 999)
+group <- read.delim(fin52, sep = "\t", stringsAsFactors = FALSE)
+adonis_result <- adonis(otu ~ group, group, distance = "bray", permutations = 999)
 otuput <- data.frame(adonis_result$aov.tab, check.names = FALSE, stringsAsFactors = FALSE)
 otuput <- cbind(rownames(otuput), otuput)
-names(otuput) <- c('', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
-write.table(otuput, file = fout51, row.names = FALSE, sep = '\t', quote = FALSE, na = '')
+names(otuput) <- c("", "Df", "Sums of squares", "Mean squares", "F.Model", "Variation (R2)", "Pr (>F)")
+write.table(otuput, file = fout51, row.names = FALSE, sep = "\t", quote = FALSE, na = "")
 
 
-##PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
-#推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
+## PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
+# 推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
 group_name <- unique(group$group)
 
 adonis_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
-  for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    adonis_result_otu_ij <- adonis(otu_ij~group, group_ij, permutations = 999, distance = 'bray')     #Bray-Curtis 距离测度，基于 999 次置换
-    adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = '/'), 'Bray-Curtis', unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
-  }
+    for (j in (i + 1):length(group_name)) {
+        group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
+        otu_ij <- otu[group_ij$names, ]
+        adonis_result_otu_ij <- adonis(otu_ij ~ group, group_ij, permutations = 999, distance = "bray") # Bray-Curtis 距离测度，基于 999 次置换
+        adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = "/"), "Bray-Curtis", unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
+    }
 }
 adonis_result_two <- data.frame(adonis_result_two, stringsAsFactors = FALSE)
-names(adonis_result_two) <- c('group', 'distance', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
+names(adonis_result_two) <- c("group", "distance", "Df", "Sums of squares", "Mean squares", "F.Model", "Variation (R2)", "Pr (>F)")
 
-#可选添加 p 值校正，例如 Benjamini 校正
-write.table(adonis_result_two, fout52, row.names = FALSE, sep = '\t', quote = FALSE, na = '')
+# 可选添加 p 值校正，例如 Benjamini 校正
+write.table(adonis_result_two, fout52, row.names = FALSE, sep = "\t", quote = FALSE, na = "")
 ```
 
 
@@ -490,30 +545,30 @@ write.table(adonis_result_two, fout52, row.names = FALSE, sep = '\t', quote = FA
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PERMANOVA-GVHD.R`
 
 ```{r}
-fin41 <- here(path_data, 'virome_GVHD_patient.txt')
-fin42 <- here(path_data, 'group_GVHD_patient.txt')
-fout41 <- path_target('PERMANOVA.result_GVHD_Patient.txt')
-otu <- read.delim(fin41, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE)
+fin41 <- here(path_data, "virome_GVHD_patient.txt")
+fin42 <- here(path_data, "group_GVHD_patient.txt")
+fout41 <- path_target("PERMANOVA.result_GVHD_Patient.txt")
+otu <- read.delim(fin41, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE)
 otu <- data.frame(t(otu))
-group <- read.delim(fin42, sep = '\t', stringsAsFactors = FALSE)
-##PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
-#推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
+group <- read.delim(fin42, sep = "\t", stringsAsFactors = FALSE)
+## PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
+# 推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
 group_name <- unique(group$group)
 
 adonis_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
-  for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    adonis_result_otu_ij <- adonis(otu_ij~group, group_ij, permutations = 999, distance = 'bray')     #Bray-Curtis 距离测度，基于 999 次置换
-    adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = '/'), 'Bray-Curtis', unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
-  }
+    for (j in (i + 1):length(group_name)) {
+        group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
+        otu_ij <- otu[group_ij$names, ]
+        adonis_result_otu_ij <- adonis(otu_ij ~ group, group_ij, permutations = 999, distance = "bray") # Bray-Curtis 距离测度，基于 999 次置换
+        adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = "/"), "Bray-Curtis", unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
+    }
 }
 adonis_result_two <- data.frame(adonis_result_two, stringsAsFactors = FALSE)
-names(adonis_result_two) <- c('group', 'distance', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
+names(adonis_result_two) <- c("group", "distance", "Df", "Sums of squares", "Mean squares", "F.Model", "Variation (R2)", "Pr (>F)")
 
-#可选添加 p 值校正，例如 Benjamini 校正
-write.table(adonis_result_two, fout41, row.names = FALSE, sep = '\t', quote = FALSE, na = '')
+# 可选添加 p 值校正，例如 Benjamini 校正
+write.table(adonis_result_two, fout41, row.names = FALSE, sep = "\t", quote = FALSE, na = "")
 ```
 
 
@@ -523,34 +578,33 @@ write.table(adonis_result_two, fout41, row.names = FALSE, sep = '\t', quote = FA
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PERMANOVA-ABX.R`
 
 ```{r}
+fin31 <- here(path_data, "virome_ABX_patient.txt")
+fin32 <- here(path_data, "group_ABX_patient.txt")
+fout31 <- path_target("PERMANOVA.result_ABX_Patient.txt")
 
-fin31 <- here(path_data, 'virome_ABX_patient.txt')
-fin32 <- here(path_data, 'group_ABX_patient.txt')
-fout31 <- path_target('PERMANOVA.result_ABX_Patient.txt')
+otu <- read.delim(fin31, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-otu <- read.delim(fin31, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
-
-group <- read.delim(fin32, sep = '\t', stringsAsFactors = FALSE)
-##PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
-#推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
+group <- read.delim(fin32, sep = "\t", stringsAsFactors = FALSE)
+## PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
+# 推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
 group_name <- unique(group$group)
 
 adonis_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
-  for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    adonis_result_otu_ij <- adonis(otu_ij~group, group_ij, permutations = 999, distance = 'bray')     #Bray-Curtis 距离测度，基于 999 次置换
-    adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = '/'), 'Bray-Curtis', unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
-  }
+    for (j in (i + 1):length(group_name)) {
+        group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
+        otu_ij <- otu[group_ij$names, ]
+        adonis_result_otu_ij <- adonis(otu_ij ~ group, group_ij, permutations = 999, distance = "bray") # Bray-Curtis 距离测度，基于 999 次置换
+        adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = "/"), "Bray-Curtis", unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
+    }
 }
 adonis_result_two <- data.frame(adonis_result_two, stringsAsFactors = FALSE)
-names(adonis_result_two) <- c('group', 'distance', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
+names(adonis_result_two) <- c("group", "distance", "Df", "Sums of squares", "Mean squares", "F.Model", "Variation (R2)", "Pr (>F)")
 
-#可选添加 p 值校正，例如 Benjamini 校正
-write.table(adonis_result_two, fout31, row.names = FALSE, sep = '\t', quote = FALSE, na = '')
+# 可选添加 p 值校正，例如 Benjamini 校正
+write.table(adonis_result_two, fout31, row.names = FALSE, sep = "\t", quote = FALSE, na = "")
 
 ```
 
@@ -561,68 +615,73 @@ write.table(adonis_result_two, fout31, row.names = FALSE, sep = '\t', quote = FA
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PCOA-MIX.R`
 
 ```{r}
-fin21 <- here(path_data, 'virome_AF_patient.txt')
-fin22 <- here(path_data, 'group_AF_patient.txt')
-fout20 <- path_target('AF-patient-distance.csv')
-fout21 <- path_target('pcoa.AF_PATIENT.csv')
-fout22 <- path_target('pcoa.AF_PATIENT_SPECIES.csv')
-fout23 <- path_target('V.AF_PATIENT.csv')
+fin21 <- here(path_data, "virome_AF_patient.txt")
+fin22 <- here(path_data, "group_AF_patient.txt")
+fout20 <- path_target("AF-patient-distance.csv")
+fout21 <- path_target("pcoa.AF_PATIENT.csv")
+fout22 <- path_target("pcoa.AF_PATIENT_SPECIES.csv")
+fout23 <- path_target("V.AF_PATIENT.csv")
 fout24 <- path_target("PCOA_AF_patient_NEW_1.png")
 fout24_svg <- path_target("PCOA_AF_patient_NEW_1.svg")
 
-otu <- read.delim(fin21, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin21, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin22, sep = '\t', stringsAsFactors = FALSE)
+group <- read.delim(fin22, sep = "\t", stringsAsFactors = FALSE)
 
-distance <- vegdist(otu, method = 'bray')
+distance <- vegdist(otu, method = "bray")
 pcoa <- cmdscale(distance, k = (nrow(otu) - 1), eig = TRUE)
 write.csv(as.matrix(distance), fout20, quote = F)
 
-ordiplot(scores(pcoa)[ ,c(1, 2)], type = 't')
+ordiplot(scores(pcoa)[, c(1, 2)], type = "t")
 summary(pcoa)
 
 pcoa$eig
 point <- data.frame(pcoa$point)
 write.csv(point, fout21)
-species <- wascores(pcoa$points[,1:2], otu)
+species <- wascores(pcoa$points[, 1:2], otu)
 write.csv(species, fout22)
 pcoa_eig <- (pcoa$eig)[1:2] / sum(pcoa$eig)
-sample_group <- data.frame({pcoa$point})[1:2]
+sample_group <- data.frame({
+    pcoa$point
+})[1:2]
 sample_group$names <- rownames(sample_group)
-names(sample_group)[1:2] <- c('PCoA1', 'PCoA2')
-sample_group <- merge(sample_group, group, by = 'names', all.x = TRUE)
+names(sample_group)[1:2] <- c("PCoA1", "PCoA2")
+sample_group <- merge(sample_group, group, by = "names", all.x = TRUE)
 write.csv(sample_group, fout23, quote = F, row.names = F)
 
-#modify(sample_group)
+# modify(sample_group)
 library(ggplot2)
 pcoa <- data.table::fread(fout23)
-#?趨????
-plot.theme = theme(plot.title=element_text(size=18, color="black", family  = "Arial", face= "plain",vjust=0.5,hjust=0.5),
-                   axis.line=element_line(size=0.5, colour="black"),
-                   axis.ticks=element_line(color="black"),
-                   axis.text= element_text(size=18, color="black", family  = "Arial", face= "plain", vjust=0.5, hjust=0.5),
-                   axis.title = element_text(size=18, color="black", family  = "Arial",face= "plain", vjust=0.5, hjust=0.5),
-                   legend.position="right",
-                   legend.background=element_blank(),
-                   legend.key=element_blank(),
-                   legend.text = element_text(colour = 'black', size = 12,  family  = "Arial",face = 'plain'),
-                   legend.title=element_blank(),
-                   panel.background=element_blank(),
-                   panel.grid.major=element_blank(),
-                   panel.grid.minor=element_blank()  ) 
-#stat_ellipse(level = 0.95, show.legend = F)(??Բ????????) 
-pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group))+
-  stat_ellipse(aes(colour = group),level=0.95,linetype = 2)+
-  geom_point()+scale_color_manual(values =c("MUC No-antifungals"="#8dd3c7","REG No-antifungals"="#ffffb3","MUC antifungals"="#bebada","REG antifungals"="#fb8072"))+
-  scale_fill_discrete(breaks=c("MUC No-antifungals","REG No-antifungals","MUC antifungals","REG antifungals"))
+# ?趨????
+plot.theme = theme(
+    plot.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.line = element_line(size = 0.5, colour = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    axis.title = element_text(size = 18, color = "black", family = "Arial", face = "plain", vjust = 0.5, hjust = 0.5),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(colour = "black", size = 12, family = "Arial", face = "plain"),
+    legend.title = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+) 
+# stat_ellipse(level = 0.95, show.legend = F)(??Բ????????) 
+pcoa_plot <- ggplot(pcoa, aes(PCoA1, PCoA2, group = group, color = group)) +
+    stat_ellipse(aes(colour = group), level = 0.95, linetype = 2) +
+    geom_point() +
+    scale_color_manual(values = c("MUC No-antifungals" = "#8dd3c7", "REG No-antifungals" = "#ffffb3", "MUC antifungals" = "#bebada", "REG antifungals" = "#fb8072")) +
+    scale_fill_discrete(breaks = c("MUC No-antifungals", "REG No-antifungals", "MUC antifungals", "REG antifungals"))
 
 p1 = pcoa_plot + plot.theme
 p1
-p2 = p1 + xlab(paste("Axis1 ",5.78,"%",sep=""))+ylab(paste("Axis2 ",5.24,"%",sep="")) 
+p2 = p1 + xlab(paste("Axis1 ", 5.78, "%", sep = "")) + ylab(paste("Axis2 ", 5.24, "%", sep = "")) 
 p2
-ggsave(fout24_svg, p2, width =2400,height = 1200,units = "px" )
+ggsave(fout24_svg, p2, width = 2400, height = 1200, units = "px")
 ```
 
 
@@ -632,33 +691,33 @@ ggsave(fout24_svg, p2, width =2400,height = 1200,units = "px" )
 code from: `~/project/p0064gvhd/workflow/data/00-raw/result/Beta_Diversity/PCOA/PERMANOVA-AF.R`
 
 ```{r}
-fin11 <- here(path_data, 'virome_AF_patient.txt')
-fin12 <- here(path_data, 'group_AF_patient.txt')
-fout11 <- path_target('PERMANOVA.result_AF_PATIENT.txt')
+fin11 <- here(path_data, "virome_AF_patient.txt")
+fin12 <- here(path_data, "group_AF_patient.txt")
+fout11 <- path_target("PERMANOVA.result_AF_PATIENT.txt")
 
-otu <- read.delim(fin11, row.names = 1, sep = '\t', stringsAsFactors = FALSE, check.names = FALSE) %>% 
-  t() %>% 
-  data.frame()
+otu <- read.delim(fin11, row.names = 1, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE) %>% 
+    t() %>% 
+    data.frame()
 
-group <- read.delim(fin12, sep = '\t', stringsAsFactors = FALSE)
-##PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
-#推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
+group <- read.delim(fin12, sep = "\t", stringsAsFactors = FALSE)
+## PERMANOVA 分析（使用循环处理，进行小分组间比较，如两组间）
+# 推荐使用 OTU 丰度表作为输入数据，每次筛选分组后重新计算样本距离，避免由于样本数减少可能导致的距离变动而造成误差
 group_name <- unique(group$group)
 
 adonis_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
-  for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    adonis_result_otu_ij <- adonis(otu_ij~group, group_ij, permutations = 999, distance = 'bray')     #Bray-Curtis 距离测度，基于 999 次置换
-    adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = '/'), 'Bray-Curtis', unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
-  }
+    for (j in (i + 1):length(group_name)) {
+        group_ij <- subset(group, group %in% c(group_name[i], group_name[j]))
+        otu_ij <- otu[group_ij$names, ]
+        adonis_result_otu_ij <- adonis(otu_ij ~ group, group_ij, permutations = 999, distance = "bray") # Bray-Curtis 距离测度，基于 999 次置换
+        adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = "/"), "Bray-Curtis", unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
+    }
 }
 adonis_result_two <- data.frame(adonis_result_two, stringsAsFactors = FALSE)
-names(adonis_result_two) <- c('group', 'distance', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
+names(adonis_result_two) <- c("group", "distance", "Df", "Sums of squares", "Mean squares", "F.Model", "Variation (R2)", "Pr (>F)")
 
-#可选添加 p 值校正，例如 Benjamini 校正
-write.table(adonis_result_two, fout11, row.names = FALSE, sep = '\t', quote = FALSE, na = '')
+# 可选添加 p 值校正，例如 Benjamini 校正
+write.table(adonis_result_two, fout11, row.names = FALSE, sep = "\t", quote = FALSE, na = "")
 ```
 
 

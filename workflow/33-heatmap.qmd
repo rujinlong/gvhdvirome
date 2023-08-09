@@ -75,7 +75,8 @@ names(ann_colors$Day) = annot_data1$Day
 
 my_pheatmap <- pheatmap(mat=log10(Family+1),
              cluster_col = F,cluster_rows = T,
-             border=FALSE,cellheight = 36, cellwidth =18,
+             border=T, border_color = "grey60",
+             cellheight = 36, cellwidth =18,
              show_rownames = T, show_colnames = F,
              fontsize = 8,
              fontfamily = "Arial",
